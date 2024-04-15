@@ -14,3 +14,14 @@ clean:
 	rm -rf ./bin
 
 .DELETE_ON_ERROR:
+
+
+migrations up:
+	$GOPATH/bin/goose -dir ./migrations postgres "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable" up
+
+migrations down:
+	$GOPATH/bin/goose -dir ./migrations postgres "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable" down
+
+build:
+	docker build --tag inno-taxi .
+

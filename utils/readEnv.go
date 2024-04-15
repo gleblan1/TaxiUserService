@@ -1,0 +1,19 @@
+package utils
+
+import (
+	"github.com/joho/godotenv"
+	"github.com/spf13/viper"
+	"log"
+)
+
+func ReadValue(envString string) string {
+	err := godotenv.Load("config/.env")
+	if err != nil {
+		log.Fatalf("Error loading .env file: %v", err)
+	}
+
+	viper.AutomaticEnv()
+
+	value := viper.GetString(envString)
+	return value
+}
