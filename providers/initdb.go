@@ -13,7 +13,10 @@ func InitDB() (postgresDb *sqlx.DB, redisDb *redis.Client, err error) {
 	if err != nil {
 		return nil, nil, fmt.Errorf("init postgres db err: %s", err.Error())
 	}
-	redisDb = initRedis(context.TODO())
+	redisDb, err = initRedis(context.TODO())
+	if err != nil {
+		return nil, nil, fmt.Errorf("init redis db err: %s", err.Error())
+	}
 	return postgresDb, redisDb, nil
 }
 
@@ -22,27 +25,24 @@ func initPostgres() (*sqlx.DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("db connection error: %w", err)
 	}
-	//defer db.Close()
 
 	if err = db.Ping(); err != nil {
 		return nil, fmt.Errorf("db ping error: %w", err)
 	}
-	//
 	return db, nil
 }
 
-func initRedis(ctx context.Context) *redis.Client {
+func initRedis(ctx context.Context) (*redis.Client, error) {
 	client := redis.NewClient(&redis.Options{
 		Addr:     "localhost:6379",
 		Password: "",
 		DB:       0,
 	})
 
-	pong, err := client.Ping(ctx).Result()
+	_, err := client.Ping(ctx).Result()
 	if err != nil {
-		fmt.Println(err)
+		return nil, fmt.Errorf("redis ping error: %w", err)
 	}
-	fmt.Println(pong)
 
-	return client
+	return client, nil
 }

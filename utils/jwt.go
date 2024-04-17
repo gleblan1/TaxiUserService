@@ -8,7 +8,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"os"
-	"reflect"
 	"strings"
 	"time"
 )
@@ -31,26 +30,24 @@ func generateRandomString(s int) (string, error) {
 func GenerateTokens(uuid string) (refreshToken, accessToken string, err error) {
 	accessToken = CreateAccessToken(uuid)
 	refreshToken = CreateRefreshToken(uuid)
-	return refreshToken, accessToken, err
+	return accessToken, refreshToken, err
 }
 
 func CreateAccessToken(uuid string) (token string) {
 	t := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"iat": time.Now().Unix(),
-		"exp": time.Now().Add(time.Hour * time.Duration(1)).Unix(),
+		"exp": time.Now().Add(time.Minute * 10).Unix(),
 		"aud": []string{uuid},
 	})
+
 	s, _ := t.SignedString([]byte(os.Getenv("SECRET")))
 	return s
 }
 
-//нужно проверять передаваемый пользователем в запросе токен, сравнивая его с токеном из бд. в бд будет вайтлист, в котором будут храниться пары. если токен в вайтлисте то все ок.
-//если пользователь лог аут то из вайтлиста удаляется пара (?)
-
 func CreateRefreshToken(uuid string) (token string) {
 	t := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"iat": time.Now().Unix(),
-		"exp": time.Now().Add(time.Hour * 24 * 30 * time.Duration(1)).Unix(),
+		"exp": time.Now().Add(time.Hour * 24).Unix(),
 		"aud": []string{uuid},
 	})
 	s, _ := t.SignedString([]byte(os.Getenv("SECRET")))
@@ -63,7 +60,7 @@ func ExtractClaims(tokenStr string) (models.JwtClaims, error) {
 	hmacSecret := []byte(hmacSecretString)
 	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 		return hmacSecret, nil
 	})
@@ -72,27 +69,13 @@ func ExtractClaims(tokenStr string) (models.JwtClaims, error) {
 		return models.JwtClaims{}, err
 	}
 
-	claimsMap, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		return models.JwtClaims{}, fmt.Errorf("Token claims are not of type jwt.MapClaims")
-	}
+	claimsMap, _ := token.Claims.(jwt.MapClaims)
 
-	expiresAt, ok := claimsMap["exp"]
-	if !ok {
-		return models.JwtClaims{}, fmt.Errorf("Claim 'exp' is not of type int64")
-	}
+	expiresAt, _ := claimsMap["exp"]
 
-	audience, ok := claimsMap["aud"].([]interface{})
-	if !ok {
-		return models.JwtClaims{}, fmt.Errorf("Claim 'aud' is not of type string")
-	}
+	audience, _ := claimsMap["aud"].([]interface{})
 
-	issuedAt, ok := claimsMap["iat"]
-	if !ok {
-		return models.JwtClaims{}, fmt.Errorf("Claim 'iat' is not of type int64")
-	}
-
-	fmt.Println(reflect.TypeOf(expiresAt))
+	issuedAt, _ := claimsMap["iat"]
 
 	claims = models.JwtClaims{
 		Audience:  audience[0].(string),

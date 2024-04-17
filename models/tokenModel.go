@@ -15,5 +15,9 @@ type JwtToken struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
+type RefreshRequestBody struct {
+	RefreshToken string `json:"refresh_token"`
+}
+
 const RefreshTokenValidTime = time.Hour * 72
-const AuthTokenValidTime = time.Minute * 15
+const AuthTokenValidTime = time.Second * 2

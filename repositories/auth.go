@@ -10,14 +10,16 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/redis/go-redis/v9"
 	"strconv"
+	"strings"
 	"time"
 )
 
 type IAuthRepository interface {
 	Login(ctx context.Context, username, password string) (models.JwtToken, error)
 	SignUp(username, email, password string) (string, error)
-	LogOut(id int) error
-	ValidateToken(username, password string) (bool, error)
+	LogOut(ctx context.Context, id int) error
+	ValidateToken(ctx context.Context, tokenString string) (bool, error)
+	Refresh(ctx context.Context, refreshTokenString string) (models.JwtToken, error)
 }
 
 type AuthRepository struct {
@@ -32,7 +34,7 @@ func (r *Repository) Login(ctx context.Context, username, password string) (mode
 
 	err := r.db.QueryRowx("SELECT id FROM users WHERE name = $1", username).Scan(&userId)
 	if err != nil {
-		return models.JwtToken{}, errors.New("Wrong username")
+		return models.JwtToken{}, errors.New("user not found")
 	}
 
 	var passwordFromDB string
@@ -42,7 +44,7 @@ func (r *Repository) Login(ctx context.Context, username, password string) (mode
 	}
 	isPasswordCorrect, err := utils.ComparePassword(passwordFromDB, password)
 	if err != nil {
-		return models.JwtToken{}, errors.New("Wrong password")
+		return models.JwtToken{}, errors.New("wrong password")
 	}
 
 	if isPasswordCorrect {
@@ -94,11 +96,11 @@ func (r *Repository) SignUp(name, phoneNumber, email, password string) (models.U
 	return user, nil
 }
 
-func (r *Repository) LogOut(id int) error {
+func (r *Repository) LogOut(ctx context.Context, id int) error {
 	var userId int
 
 	userId = id
-	exists, err := r.client.Exists(context.TODO(), strconv.Itoa(userId)).Result()
+	exists, err := r.client.Exists(ctx, strconv.Itoa(userId)).Result()
 	if err != nil {
 		return fmt.Errorf("log out: %w", err)
 	}
@@ -107,14 +109,19 @@ func (r *Repository) LogOut(id int) error {
 	} else {
 		return fmt.Errorf("log out: %w", errors.New("already log out"))
 	}
-//clean up the code 
-//check all the error handlers (bug: i have a few errors in response)
-//implement validate token
-//fix bug with log out (bug: user can log out using any token)
 	return nil
 }
 
-func (r *Repository) ValidateToken(username, password string) (bool, error) {
+func (r *Repository) ValidateToken(ctx context.Context, tokenString string) (bool, error) {
+	claims, err := utils.ExtractClaims(tokenString)
+	if err != nil {
+		return false, err
+	}
+	userId := claims.Audience
+	tokenFromRedis := strings.Split(r.client.Get(ctx, userId).String(), " ")[2]
+	if tokenFromRedis == tokenString {
+		return true, nil
+	}
 	return false, nil
 }
 
@@ -133,4 +140,33 @@ func (r *Repository) checkUserData(name, phoneNumber, email string) error {
 		return errors.New("email already in use")
 	}
 	return nil
+}
+
+func (r *Repository) Refresh(ctx context.Context, refreshTokenString string) (models.JwtToken, error) {
+	token := models.JwtToken{}
+	claims, err := utils.ExtractClaims(refreshTokenString)
+	if err != nil {
+		return token, err
+	}
+	userId := claims.Audience
+	tokensFromRedis := strings.Split(r.client.Get(ctx, userId).String(), " ")[3]
+	if tokensFromRedis == refreshTokenString {
+
+		accessToken, refreshToken, err := utils.GenerateTokens(userId)
+
+		if err != nil {
+			return models.JwtToken{}, err
+		}
+
+		token.AccessToken = accessToken
+		token.RefreshToken = refreshToken
+
+		err = r.client.Set(ctx, userId, accessToken+" "+refreshToken, 24*time.Hour).Err()
+		if err != nil {
+			return models.JwtToken{}, err
+		}
+	} else {
+		return models.JwtToken{}, errors.New("refresh token is invalid")
+	}
+	return token, nil
 }
