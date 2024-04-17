@@ -29,7 +29,7 @@ func (h *Handler) LogIn(c *gin.Context) {
 		return
 	}
 
-	response, err := h.s.Login(c, req.Name, req.Password)
+	response, err := h.s.Login(c, req.PhoneNumber, req.Password)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -44,11 +44,12 @@ func (h *Handler) LogOut(c *gin.Context) {
 		return
 	}
 	id, err := strconv.Atoi(claims.Audience)
+	session, err := strconv.Atoi(claims.Session)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if err := h.s.LogOut(c, id); err != nil {
+	if err := h.s.LogOut(c, session, id); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}

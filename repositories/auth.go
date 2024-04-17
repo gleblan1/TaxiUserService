@@ -15,7 +15,7 @@ import (
 )
 
 type IAuthRepository interface {
-	Login(ctx context.Context, username, password string) (models.JwtToken, error)
+	Login(ctx context.Context, phone, password string) (models.JwtToken, error)
 	SignUp(username, email, password string) (string, error)
 	LogOut(ctx context.Context, id int) error
 	ValidateToken(ctx context.Context, tokenString string) (bool, error)
@@ -27,12 +27,13 @@ type AuthRepository struct {
 	client redis.Client
 }
 
-func (r *Repository) Login(ctx context.Context, username, password string) (models.JwtToken, error) {
+func (r *Repository) Login(ctx context.Context, phone, password string) (models.JwtToken, error) {
 	jwtToken := models.JwtToken{}
 
 	var userId int
+	session := utils.CreateRandomInt()
 
-	err := r.db.QueryRowx("SELECT id FROM users WHERE name = $1", username).Scan(&userId)
+	err := r.db.QueryRowx("SELECT id FROM users WHERE phone_number = $1", phone).Scan(&userId)
 	if err != nil {
 		return models.JwtToken{}, errors.New("user not found")
 	}
@@ -48,13 +49,13 @@ func (r *Repository) Login(ctx context.Context, username, password string) (mode
 	}
 
 	if isPasswordCorrect {
-		accessToken, refreshToken, err := utils.GenerateTokens(strconv.Itoa(userId))
+		accessToken, refreshToken, err := utils.GenerateTokens(strconv.Itoa(session), strconv.Itoa(userId))
 		if err != nil {
 			return models.JwtToken{}, err
 		}
 		jwtToken.AccessToken = accessToken
 		jwtToken.RefreshToken = refreshToken
-		err = r.client.Set(ctx, strconv.Itoa(userId), accessToken+" "+refreshToken, 24*time.Hour).Err()
+		err = r.client.Set(ctx, strconv.Itoa(userId)+"."+strconv.Itoa(session), accessToken+" "+refreshToken, 24*time.Hour).Err()
 		if err != nil {
 			return models.JwtToken{}, err
 		}
@@ -96,16 +97,18 @@ func (r *Repository) SignUp(name, phoneNumber, email, password string) (models.U
 	return user, nil
 }
 
-func (r *Repository) LogOut(ctx context.Context, id int) error {
+func (r *Repository) LogOut(ctx context.Context, session, id int) error {
 	var userId int
 
 	userId = id
-	exists, err := r.client.Exists(ctx, strconv.Itoa(userId)).Result()
+	sessionId := session
+	exists, err := r.client.Exists(ctx, strconv.Itoa(userId)+"."+strconv.Itoa(sessionId)).Result()
 	if err != nil {
 		return fmt.Errorf("log out: %w", err)
 	}
 	if exists == 1 {
-		r.client.Del(context.Background(), strconv.Itoa(userId))
+		fmt.Println(userId, sessionId)
+		r.client.Del(context.Background(), strconv.Itoa(userId)+"."+strconv.Itoa(sessionId))
 	} else {
 		return fmt.Errorf("log out: %w", errors.New("already log out"))
 	}
@@ -118,7 +121,8 @@ func (r *Repository) ValidateToken(ctx context.Context, tokenString string) (boo
 		return false, err
 	}
 	userId := claims.Audience
-	tokenFromRedis := strings.Split(r.client.Get(ctx, userId).String(), " ")[2]
+	sessionId := claims.Session
+	tokenFromRedis := strings.Split(r.client.Get(ctx, userId+"."+sessionId).String(), " ")[2]
 	if tokenFromRedis == tokenString {
 		return true, nil
 	}
@@ -149,10 +153,11 @@ func (r *Repository) Refresh(ctx context.Context, refreshTokenString string) (mo
 		return token, err
 	}
 	userId := claims.Audience
-	tokensFromRedis := strings.Split(r.client.Get(ctx, userId).String(), " ")[3]
+	sessionId := claims.Session
+	tokensFromRedis := strings.Split(r.client.Get(ctx, userId+"."+sessionId).String(), " ")[3]
 	if tokensFromRedis == refreshTokenString {
 
-		accessToken, refreshToken, err := utils.GenerateTokens(userId)
+		accessToken, refreshToken, err := utils.GenerateTokens(sessionId, userId)
 
 		if err != nil {
 			return models.JwtToken{}, err
@@ -161,7 +166,7 @@ func (r *Repository) Refresh(ctx context.Context, refreshTokenString string) (mo
 		token.AccessToken = accessToken
 		token.RefreshToken = refreshToken
 
-		err = r.client.Set(ctx, userId, accessToken+" "+refreshToken, 24*time.Hour).Err()
+		err = r.client.Set(ctx, userId+"."+sessionId, accessToken+" "+refreshToken, 24*time.Hour).Err()
 		if err != nil {
 			return models.JwtToken{}, err
 		}

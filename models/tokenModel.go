@@ -1,13 +1,10 @@
 package models
 
-import (
-	"time"
-)
-
 type JwtClaims struct {
 	Audience  string  `json:"aud,omitempty"`
 	ExpiresAt float64 `json:"exp,omitempty"`
 	IssuedAt  float64 `json:"iat,omitempty"`
+	Session   string  `'json:"jti,omitempty"`
 }
 
 type JwtToken struct {
@@ -18,6 +15,3 @@ type JwtToken struct {
 type RefreshRequestBody struct {
 	RefreshToken string `json:"refresh_token"`
 }
-
-const RefreshTokenValidTime = time.Hour * 72
-const AuthTokenValidTime = time.Second * 2
