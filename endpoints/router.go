@@ -27,7 +27,8 @@ func (r *Router) InitRoutes() *gin.Engine {
 	auth.POST("/login", r.handler.LogIn)
 	auth.POST("/sign-up", r.handler.SignUp)
 	auth.POST("/refresh", r.handler.Refresh)
-	auth.Use(r.authMiddleware.ValidateToken()).POST("/logout", r.handler.LogOut)
+	auth.POST("/logout", r.authMiddleware.ValidateToken(), r.handler.LogOut)
+
 	return router
 }
 
