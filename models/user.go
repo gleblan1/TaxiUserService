@@ -2,10 +2,10 @@ package models
 
 type User struct {
 	Id          int    `json:"id"`
-	Name        string `json:"name" binding:"required,min=4,max=20"`
-	Email       string `json:"email" binding:"required,emailValid"`
-	PhoneNumber string `json:"phone_number" binding:"required,phoneValid"`
-	Password    string `json:"password" binding:"required,min=8"`
+	Name        string `json:"name"`
+	Email       string `json:"email"`
+	PhoneNumber string `json:"phone_number"`
+	Password    string `json:"password"`
 }
 
 type RegisterRequest struct {
