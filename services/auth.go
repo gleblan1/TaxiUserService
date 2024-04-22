@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
+
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/models"
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/utils"
-	"strconv"
 )
 
-type IAuthService interface {
+type Auth interface {
 	Login(ctx context.Context, username, password string) (models.JwtToken, error)
 	SignUp(name, phoneNumber, email, password string) (string, error)
 	LogOut(ctx context.Context, session, id int) error
@@ -61,23 +62,6 @@ func (s *Service) SignUp(name, phoneNumber, email, password string) (models.User
 
 func (s *Service) LogOut(ctx context.Context, session, id int) error {
 	return s.repo.LogOut(ctx, session, id)
-}
-
-func (s *Service) ValidateToken(ctx context.Context, tokenString string) (bool, error) {
-	claims, err := utils.ExtractClaims(tokenString)
-	if err != nil {
-		return false, err
-	}
-	userId := claims.Audience
-	sessionId := claims.Session
-	accessToken, err := s.repo.ValidateToken(ctx, userId, sessionId)
-	if err != nil {
-		return false, err
-	}
-	if accessToken == tokenString {
-		return true, nil
-	}
-	return false, nil
 }
 
 func (s *Service) Refresh(ctx context.Context, refreshTokenString string) (models.JwtToken, error) {

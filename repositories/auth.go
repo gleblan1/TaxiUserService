@@ -5,13 +5,14 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/GO-Trainee/GlebL-innotaxi-userservice/models"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/GO-Trainee/GlebL-innotaxi-userservice/models"
 )
 
-type IAuthRepository interface {
+type Auth interface {
 	GetData(phone string) (string, int, error)
 	SignUp(name, phoneNumber, email, password string) (models.User, error)
 	LogOut(ctx context.Context, session, id int) error

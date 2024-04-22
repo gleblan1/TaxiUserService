@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+
 	handler "github.com/GO-Trainee/GlebL-innotaxi-userservice/endpoints"
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/middleware"
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/providers"
@@ -30,11 +31,23 @@ func Run(ctx context.Context, stop context.CancelFunc) error {
 			return err
 		}
 	}
-	repos := repositories.NewRepository(postgresDB, *redisDB)
-	service := services.NewServices(repos)
-	handlers := handler.NewHandler(service)
-	middlewares := middleware.NewAuthMiddleware(*service)
-	router := handler.NewRouter(middlewares, *handlers)
+	repos := repositories.NewRepository(
+		repositories.WithPostgresRepository(postgresDB),
+		repositories.WithRedisClient(*redisDB),
+	)
+	service := services.NewService(
+		services.WithAuthRepo(repos),
+	)
+	handlers := handler.NewHandler(
+		handler.WithAuthService(service),
+	)
+	middlewares := middleware.NewMiddleware(
+		middleware.WithAuthMiddleware(service),
+	)
+	router := handler.NewRouter(
+		handler.WithHandler(handlers),
+		handler.WithMiddleware(middlewares),
+	)
 	g.Go(func() error {
 		if err := providers.InitServer("8000", router.InitRoutes()); err != nil {
 			return fmt.Errorf("cannot run the server: %w", err)
@@ -47,7 +60,7 @@ func Run(ctx context.Context, stop context.CancelFunc) error {
 		stop()
 		return g.Wait()
 	case <-ctx.Done():
-		fmt.Println("Exited")
+		fmt.Println(" Exited")
 		return nil
 	}
 }

@@ -1,20 +1,33 @@
 package handler
 
 import (
+	"github.com/GO-Trainee/GlebL-innotaxi-userservice/middleware"
 	"github.com/gin-gonic/gin"
 )
 
 type Router struct {
-	authMiddleware IAuthMiddleware
-	handler        Handler
+	authMiddleware *middleware.Middleware
+	handler        *Handler
 }
 
-func NewRouter(authMiddleware IAuthMiddleware, handler Handler) *Router {
-	return &Router{authMiddleware: authMiddleware, handler: handler}
+func NewRouter(options ...func(*Router)) *Router {
+	router := &Router{}
+	for _, option := range options {
+		option(router)
+	}
+	return router
 }
 
-type IAuthMiddleware interface {
-	ValidateToken() gin.HandlerFunc
+func WithMiddleware(middleware *middleware.Middleware) func(*Router) {
+	return func(r *Router) {
+		r.authMiddleware = middleware
+	}
+}
+
+func WithHandler(h *Handler) func(*Router) {
+	return func(r *Router) {
+		r.handler = h
+	}
 }
 
 func (r *Router) InitRoutes() *gin.Engine {

@@ -12,7 +12,3 @@ func InitServer(port string, server *gin.Engine) error {
 	}
 	return nil
 }
-
-func ShutdownServer() {
-
-}

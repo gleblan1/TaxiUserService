@@ -2,45 +2,40 @@ package handler
 
 import (
 	"encoding/json"
-	"github.com/GO-Trainee/GlebL-innotaxi-userservice/models"
-	"github.com/GO-Trainee/GlebL-innotaxi-userservice/services"
-	"github.com/gin-gonic/gin"
 	"net/http"
+
+	"github.com/GO-Trainee/GlebL-innotaxi-userservice/services"
+	"github.com/GO-Trainee/GlebL-innotaxi-userservice/utils"
+	"github.com/gin-gonic/gin"
 )
 
 type Handler struct {
 	s *services.Service
 }
 
-func NewHandler(s *services.Service) *Handler {
-	return &Handler{s: s}
+func NewHandler(options ...func(*Handler)) *Handler {
+	handler := &Handler{}
+	for _, option := range options {
+		option(handler)
+	}
+	return handler
 }
 
-func DefineResponse(c *gin.Context, code int, err error, response ...interface{}) {
-	var Response models.Response
-	var errMsg string
-	if err != nil {
-		errMsg = err.Error()
-	} else {
-		errMsg = ""
+func WithAuthService(service *services.Service) func(*Handler) {
+	return func(h *Handler) {
+		h.s = service
 	}
-	Response = models.Response{
-		Code:     code,
-		Message:  errMsg,
-		Response: response,
-	}
-	c.JSON(code, Response)
 }
 
-func (h *Handler) getTokenData(c *gin.Context) models.RefreshRequestBody {
-	refreshToken := models.RefreshRequestBody{}
+func (h *Handler) getTokenData(c *gin.Context) RefreshRequestBody {
+	refreshToken := RefreshRequestBody{}
 	values, err := c.GetRawData()
 	if err != nil {
-		DefineResponse(c, http.StatusBadRequest, err, values)
+		utils.DefineResponse(c, http.StatusBadRequest, err, values)
 		return refreshToken
 	}
 	if err := json.Unmarshal(values, &refreshToken); err != nil {
-		DefineResponse(c, http.StatusBadRequest, err, values)
+		utils.DefineResponse(c, http.StatusBadRequest, err, values)
 		return refreshToken
 	}
 	return refreshToken

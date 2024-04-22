@@ -3,16 +3,17 @@ package repositories
 import (
 	"context"
 	"errors"
-	"github.com/GO-Trainee/GlebL-innotaxi-userservice/models"
-	"github.com/jmoiron/sqlx"
-	"github.com/redis/go-redis/v9"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/GO-Trainee/GlebL-innotaxi-userservice/models"
+	"github.com/jmoiron/sqlx"
+	"github.com/redis/go-redis/v9"
 )
 
-type IRepository interface {
-	IAuthRepository
+type UserRepository interface {
+	Auth
 }
 
 type Repository struct {
@@ -20,10 +21,23 @@ type Repository struct {
 	client redis.Client
 }
 
-func NewRepository(db *sqlx.DB, client redis.Client) *Repository {
-	return &Repository{
-		db,
-		client,
+func NewRepository(options ...func(*Repository)) *Repository {
+	repo := &Repository{}
+	for _, option := range options {
+		option(repo)
+	}
+	return repo
+}
+
+func WithPostgresRepository(db *sqlx.DB) func(*Repository) {
+	return func(r *Repository) {
+		r.db = db
+	}
+}
+
+func WithRedisClient(client redis.Client) func(*Repository) {
+	return func(r *Repository) {
+		r.client = client
 	}
 }
 
