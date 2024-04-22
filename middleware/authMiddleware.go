@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"errors"
+	handler "github.com/GO-Trainee/GlebL-innotaxi-userservice/endpoints"
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/services"
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/utils"
 	"github.com/gin-gonic/gin"
@@ -19,16 +21,7 @@ func (s *AuthMiddleware) ValidateToken() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		accessToken := utils.GetTokenFromHeader(c)
 		if accessToken == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
-			return
-		}
-		isTokenExists, err := s.s.ValidateToken(c, accessToken)
-		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "invalid token"})
-			return
-		}
-		if !isTokenExists {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "invalid token: already log outed"})
+			handler.DefineResponse(c, http.StatusUnauthorized, errors.New("unauthorized"))
 			return
 		}
 	}

@@ -1,10 +1,7 @@
 package handler
 
 import (
-	"encoding/json"
-	"github.com/GO-Trainee/GlebL-innotaxi-userservice/models"
 	"github.com/gin-gonic/gin"
-	"net/http"
 )
 
 type Router struct {
@@ -28,18 +25,5 @@ func (r *Router) InitRoutes() *gin.Engine {
 	auth.POST("/sign-up", r.handler.SignUp)
 	auth.POST("/refresh", r.handler.Refresh)
 	auth.POST("/logout", r.authMiddleware.ValidateToken(), r.handler.LogOut)
-
 	return router
-}
-
-func getTokenData(c *gin.Context) models.RefreshRequestBody {
-	refreshToken := models.RefreshRequestBody{}
-	values, err := c.GetRawData()
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-	}
-	if err := json.Unmarshal(values, &refreshToken); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-	}
-	return refreshToken
 }
