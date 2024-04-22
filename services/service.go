@@ -4,7 +4,6 @@ import "github.com/GO-Trainee/GlebL-innotaxi-userservice/repositories"
 
 type IService interface {
 	IAuthService
-	//...Service
 	//...
 }
 

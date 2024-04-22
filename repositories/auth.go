@@ -6,62 +6,33 @@ import (
 	"errors"
 	"fmt"
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/models"
-	"github.com/GO-Trainee/GlebL-innotaxi-userservice/utils"
-	"github.com/jmoiron/sqlx"
-	"github.com/redis/go-redis/v9"
 	"strconv"
 	"strings"
 	"time"
 )
 
 type IAuthRepository interface {
-	Login(ctx context.Context, phone, password string) (models.JwtToken, error)
-	SignUp(username, email, password string) (string, error)
-	LogOut(ctx context.Context, id int) error
-	ValidateToken(ctx context.Context, tokenString string) (bool, error)
-	Refresh(ctx context.Context, refreshTokenString string) (models.JwtToken, error)
+	GetData(phone string) (string, int, error)
+	SignUp(name, phoneNumber, email, password string) (models.User, error)
+	LogOut(ctx context.Context, session, id int) error
+	GetRefreshToken(ctx context.Context, id, session string) string
+	GetAccessToken(ctx context.Context, id, session string) string
+	SetTokens(ctx context.Context, accessToken string, refreshToken, id, session string)
 }
 
-type AuthRepository struct {
-	db     *sqlx.DB
-	client redis.Client
-}
-
-func (r *Repository) Login(ctx context.Context, phone, password string) (models.JwtToken, error) {
-	jwtToken := models.JwtToken{}
-
+func (r *Repository) GetData(phone string) (string, int, error) {
 	var userId int
-	session := utils.CreateRandomInt()
-
-	err := r.db.QueryRowx("SELECT id FROM users WHERE phone_number = $1", phone).Scan(&userId)
+	err := r.db.QueryRowx("SELECT id FROM users WHERE phone_number = $1 AND deleted_at IS NULL", phone).Scan(&userId)
 	if err != nil {
-		return models.JwtToken{}, errors.New("user not found")
+		return "", userId, errors.New("user not found")
 	}
 
 	var passwordFromDB string
-	err = r.db.QueryRow("SELECT password_hash FROM users WHERE id = $1", userId).Scan(&passwordFromDB)
+	err = r.db.QueryRow("SELECT password_hash FROM users WHERE id = $1 AND deleted_at IS NULL", userId).Scan(&passwordFromDB)
 	if err != nil {
-		return models.JwtToken{}, err
+		return "", userId, err
 	}
-	isPasswordCorrect, err := utils.ComparePassword(passwordFromDB, password)
-	if err != nil {
-		return models.JwtToken{}, errors.New("wrong password")
-	}
-
-	if isPasswordCorrect {
-		accessToken, refreshToken, err := utils.GenerateTokens(strconv.Itoa(session), strconv.Itoa(userId))
-		if err != nil {
-			return models.JwtToken{}, err
-		}
-		jwtToken.AccessToken = accessToken
-		jwtToken.RefreshToken = refreshToken
-		err = r.client.Set(ctx, strconv.Itoa(userId)+"."+strconv.Itoa(session), accessToken+" "+refreshToken, 24*time.Hour).Err()
-		if err != nil {
-			return models.JwtToken{}, err
-		}
-		return jwtToken, nil
-	}
-	return models.JwtToken{}, nil
+	return passwordFromDB, userId, nil
 }
 
 func (r *Repository) SignUp(name, phoneNumber, email, password string) (models.User, error) {
@@ -71,15 +42,7 @@ func (r *Repository) SignUp(name, phoneNumber, email, password string) (models.U
 		Email:       email,
 		Password:    password,
 	}
-	if r.db == nil {
-		return user, errors.New("database connection is nil")
-	}
-
-	existingUserErr := r.checkUserData(user.Name, user.PhoneNumber, user.Email)
-	if existingUserErr != nil {
-		return models.User{}, fmt.Errorf("cannot create user: %w", existingUserErr)
-	}
-	stmt, err := r.db.Prepare("INSERT INTO users(name, phone_number, email, password_hash) VALUES ($1, $2, $3, $4) RETURNING id")
+	stmt, err := r.db.Prepare("INSERT INTO users(name, phone_number, email, password_hash, created_at, updated_at) VALUES ($1, $2, $3, $4, now(), now()) RETURNING id")
 	if err != nil {
 		return user, fmt.Errorf("error preparing SQL statement: %w", err)
 	}
@@ -93,85 +56,35 @@ func (r *Repository) SignUp(name, phoneNumber, email, password string) (models.U
 	if err != nil {
 		return user, fmt.Errorf("error executing SQL statement: %w", err)
 	}
-
 	return user, nil
 }
 
 func (r *Repository) LogOut(ctx context.Context, session, id int) error {
-	var userId int
-
-	userId = id
-	sessionId := session
-	exists, err := r.client.Exists(ctx, strconv.Itoa(userId)+"."+strconv.Itoa(sessionId)).Result()
+	exists, err := r.client.Exists(ctx, strconv.Itoa(id)+"."+strconv.Itoa(session)).Result()
 	if err != nil {
 		return fmt.Errorf("log out: %w", err)
 	}
 	if exists == 1 {
-		fmt.Println(userId, sessionId)
-		r.client.Del(context.Background(), strconv.Itoa(userId)+"."+strconv.Itoa(sessionId))
+		fmt.Println(id, session)
+		r.client.Del(context.Background(), strconv.Itoa(id)+"."+strconv.Itoa(session))
 	} else {
 		return fmt.Errorf("log out: %w", errors.New("already log out"))
 	}
 	return nil
 }
 
-func (r *Repository) ValidateToken(ctx context.Context, tokenString string) (bool, error) {
-	claims, err := utils.ExtractClaims(tokenString)
-	if err != nil {
-		return false, err
-	}
-	userId := claims.Audience
-	sessionId := claims.Session
-	tokenFromRedis := strings.Split(r.client.Get(ctx, userId+"."+sessionId).String(), " ")[2]
-	if tokenFromRedis == tokenString {
-		return true, nil
-	}
-	return false, nil
+func (r *Repository) GetRefreshToken(ctx context.Context, id, session string) string {
+	return strings.Split(r.client.Get(ctx, id+"."+session).String(), " ")[3]
 }
 
-func (r *Repository) checkUserData(name, phoneNumber, email string) error {
-	existingUser := models.User{}
-	err := r.db.Get(&existingUser, "SELECT name FROM users WHERE name = $1", name)
-	if err == nil {
-		return errors.New("name already in use")
-	}
-	err = r.db.Get(&existingUser, "SELECT id FROM users WHERE phone_number = $1", phoneNumber)
-	if err == nil {
-		return errors.New("phone already in use")
-	}
-	err = r.db.Get(&existingUser, "SELECT id FROM users WHERE email = $1", email)
-	if err == nil {
-		return errors.New("email already in use")
+func (r *Repository) GetAccessToken(ctx context.Context, id, session string) string {
+	return strings.Split(r.client.Get(ctx, id+"."+session).String(), " ")[2]
+}
+
+func (r *Repository) SetTokens(ctx context.Context, accessToken string, refreshToken, id, session string) error {
+	err := r.client.Set(ctx, id+"."+session, accessToken+" "+refreshToken, 24*time.Hour).Err()
+	if err != nil {
+		return err
 	}
 	return nil
-}
-
-func (r *Repository) Refresh(ctx context.Context, refreshTokenString string) (models.JwtToken, error) {
-	token := models.JwtToken{}
-	claims, err := utils.ExtractClaims(refreshTokenString)
-	if err != nil {
-		return token, err
-	}
-	userId := claims.Audience
-	sessionId := claims.Session
-	tokensFromRedis := strings.Split(r.client.Get(ctx, userId+"."+sessionId).String(), " ")[3]
-	if tokensFromRedis == refreshTokenString {
-
-		accessToken, refreshToken, err := utils.GenerateTokens(sessionId, userId)
-
-		if err != nil {
-			return models.JwtToken{}, err
-		}
-
-		token.AccessToken = accessToken
-		token.RefreshToken = refreshToken
-
-		err = r.client.Set(ctx, userId+"."+sessionId, accessToken+" "+refreshToken, 24*time.Hour).Err()
-		if err != nil {
-			return models.JwtToken{}, err
-		}
-	} else {
-		return models.JwtToken{}, errors.New("refresh token is invalid")
-	}
-	return token, nil
 }
