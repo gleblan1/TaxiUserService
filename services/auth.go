@@ -6,25 +6,26 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/GO-Trainee/GlebL-innotaxi-userservice/config"
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/models"
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/utils"
 )
 
 type Auth interface {
-	Login(ctx context.Context, username, password string) (models.JwtToken, error)
-	SignUp(name, phoneNumber, email, password string) (string, error)
-	LogOut(ctx context.Context, session, id int) error
-	ValidateToken(ctx context.Context, tokenString string) (models.JwtToken, error)
-	Refresh(ctx context.Context, refreshTokenString string) (models.JwtToken, error)
+	Login(ctx context.Context, requestBody config.LoginRequest) (models.JwtToken, error)
+	SignUp(ctx context.Context, requestBody config.RegisterRequest) (models.User, error)
+	LogOut(ctx context.Context, request config.LogoutRequest) error
+	ValidateToken(ctx context.Context, tokenString string) (bool, error)
+	Refresh(ctx context.Context, requestBody config.RefreshRequestBody) (models.JwtToken, error)
 }
 
-func (s *Service) Login(ctx context.Context, phone, password string) (models.JwtToken, error) {
+func (s *Service) Login(ctx context.Context, requestBody config.LoginRequest) (models.JwtToken, error) {
 	var tokens models.JwtToken
-	passwordFromDB, userId, err := s.repo.GetData(phone)
+	passwordFromDB, userId, err := s.repo.GetData(requestBody.PhoneNumber)
 	if err != nil {
 		return models.JwtToken{}, err
 	}
-	isPasswordCorrect, err := utils.ComparePassword(passwordFromDB, password)
+	isPasswordCorrect, err := utils.ComparePassword(passwordFromDB, requestBody.Password)
 	if err != nil {
 		return models.JwtToken{}, errors.New("wrong password")
 	}
@@ -48,32 +49,32 @@ func (s *Service) Login(ctx context.Context, phone, password string) (models.Jwt
 	return models.JwtToken{}, nil
 }
 
-func (s *Service) SignUp(name, phoneNumber, email, password string) (models.User, error) {
-	hashedPassword, err := utils.HashPassword(password)
+func (s *Service) SignUp(ctx context.Context, requestBody config.RegisterRequest) (models.User, error) {
+	hashedPassword, err := utils.HashPassword(requestBody.Password)
 	if err != nil {
 		return models.User{}, err
 	}
-	existingUserErr := s.repo.CheckUserData(name, phoneNumber, email)
+	existingUserErr := s.repo.CheckUserData(requestBody.Name, requestBody.PhoneNumber, requestBody.Email)
 	if existingUserErr != nil {
 		return models.User{}, fmt.Errorf("cannot create user: %w", existingUserErr)
 	}
-	return s.repo.SignUp(name, phoneNumber, email, hashedPassword)
+	return s.repo.SignUp(requestBody.Name, requestBody.PhoneNumber, requestBody.Email, hashedPassword)
 }
 
-func (s *Service) LogOut(ctx context.Context, session, id int) error {
-	return s.repo.LogOut(ctx, session, id)
+func (s *Service) LogOut(ctx context.Context, request config.LogoutRequest) error {
+	return s.repo.LogOut(ctx, request.SessionId, request.UserId)
 }
 
-func (s *Service) Refresh(ctx context.Context, refreshTokenString string) (models.JwtToken, error) {
+func (s *Service) Refresh(ctx context.Context, requestBody config.RefreshRequestBody) (models.JwtToken, error) {
 	token := models.JwtToken{}
-	claims, err := utils.ExtractClaims(refreshTokenString)
+	claims, err := utils.ExtractClaims(requestBody.RefreshToken)
 	if err != nil {
 		return token, err
 	}
 	userId := claims.Audience
 	sessionId := claims.Session
 	tokensFromRedis := s.repo.GetRefreshToken(ctx, userId, sessionId)
-	if tokensFromRedis == refreshTokenString {
+	if tokensFromRedis == requestBody.RefreshToken {
 
 		accessToken, refreshToken, err := utils.GenerateTokens(sessionId, userId)
 

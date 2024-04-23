@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	handler "github.com/GO-Trainee/GlebL-innotaxi-userservice/endpoints"
+	"github.com/GO-Trainee/GlebL-innotaxi-userservice/endpoints"
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/middleware"
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/providers"
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/repositories"
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/services"
+	"github.com/GO-Trainee/GlebL-innotaxi-userservice/transport/http"
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/utils"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
@@ -31,22 +32,29 @@ func Run(ctx context.Context, stop context.CancelFunc) error {
 			return err
 		}
 	}
+
 	repos := repositories.NewRepository(
 		repositories.WithPostgresRepository(postgresDB),
 		repositories.WithRedisClient(*redisDB),
 	)
+
 	service := services.NewService(
 		services.WithAuthRepo(repos),
 	)
-	handlers := handler.NewHandler(
-		handler.WithAuthService(service),
+
+	endpoint := endpoints.MakeEndpoints(service)
+
+	handlers := http.NewHandler(
+		http.WithAuthService(endpoint),
 	)
+
 	middlewares := middleware.NewMiddleware(
 		middleware.WithAuthMiddleware(service),
 	)
-	router := handler.NewRouter(
-		handler.WithHandler(handlers),
-		handler.WithMiddleware(middlewares),
+
+	router := http.NewRouter(
+		http.WithHandler(handlers),
+		http.WithMiddleware(middlewares),
 	)
 	g.Go(func() error {
 		if err := providers.InitServer("8000", router.InitRoutes()); err != nil {

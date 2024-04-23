@@ -1,89 +1,40 @@
-package handler
+package endpoints
 
 import (
-	"net/http"
-	"strconv"
+	"context"
 
-	"github.com/GO-Trainee/GlebL-innotaxi-userservice/utils"
-	"github.com/gin-gonic/gin"
+	"github.com/GO-Trainee/GlebL-innotaxi-userservice/config"
+	"github.com/GO-Trainee/GlebL-innotaxi-userservice/services"
 )
 
-type RefreshRequestBody struct {
-	RefreshToken string `json:"refresh_token"`
+func SignUp(UserService services.UserService) Endpoint {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		requestBody := request.(config.RegisterRequest)
+		return UserService.SignUp(ctx, requestBody)
+	}
 }
 
-type RegisterRequest struct {
-	Name        string `json:"name" binding:"required,min=4,max=20"`
-	Email       string `json:"email" binding:"required,emailValid"`
-	PhoneNumber string `json:"phone_number" binding:"required,phoneValid"`
-	Password    string `json:"password" binding:"required,min=8"`
+func Login(UserService services.UserService) Endpoint {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		requestBody := request.(config.LoginRequest)
+		return UserService.Login(ctx, requestBody)
+	}
 }
 
-type LoginRequest struct {
-	PhoneNumber string `json:"phone_number" binding:"required,phoneValid"`
-	Password    string `json:"password" binding:"required,min=8"`
+func LogOut(UserService services.UserService) Endpoint {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		requestBody := request.(config.LogoutRequest)
+		err := UserService.LogOut(ctx, requestBody)
+		if err != nil {
+			return nil, err
+		}
+		return UserService.LogOut(ctx, requestBody), nil
+	}
 }
 
-func (h *Handler) SignUp(c *gin.Context) {
-	var req RegisterRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.DefineResponse(c, http.StatusBadRequest, err)
-		return
+func Refresh(UserService services.UserService) Endpoint {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		requestBody := request.(config.RefreshRequestBody)
+		return UserService.Refresh(ctx, requestBody)
 	}
-	result, err := h.s.SignUp(req.Name, req.PhoneNumber, req.Email, req.Password)
-	if err != nil {
-		utils.DefineResponse(c, http.StatusBadRequest, err)
-		return
-	}
-	utils.DefineResponse(c, http.StatusOK, err, result)
-	return
-}
-
-func (h *Handler) LogIn(c *gin.Context) {
-	var req LoginRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.DefineResponse(c, http.StatusBadRequest, err)
-		return
-	}
-
-	response, err := h.s.Login(c, req.PhoneNumber, req.Password)
-	if err != nil {
-		utils.DefineResponse(c, http.StatusBadRequest, err)
-		return
-	}
-	utils.DefineResponse(c, http.StatusOK, err, response)
-	return
-}
-
-func (h *Handler) LogOut(c *gin.Context) {
-	claims, err := utils.ExtractClaims(utils.GetTokenFromHeader(c))
-	if err != nil {
-		utils.DefineResponse(c, http.StatusBadRequest, err)
-		return
-	}
-	id, err := strconv.Atoi(claims.Audience)
-	if err != nil {
-		utils.DefineResponse(c, http.StatusBadRequest, err)
-		return
-	}
-	session, err := strconv.Atoi(claims.Session)
-	if err != nil {
-		utils.DefineResponse(c, http.StatusBadRequest, err)
-		return
-	}
-	if err := h.s.LogOut(c, session, id); err != nil {
-		return
-	}
-	return
-}
-
-func (h *Handler) Refresh(c *gin.Context) {
-	refreshTokenString := h.getTokenData(c).RefreshToken
-	tokens, err := h.s.Refresh(c, refreshTokenString)
-	if err != nil {
-		utils.DefineResponse(c, http.StatusUnauthorized, err)
-		return
-	}
-	utils.DefineResponse(c, http.StatusOK, err, tokens)
-	return
 }
