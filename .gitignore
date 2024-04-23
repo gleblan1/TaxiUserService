@@ -21,5 +21,8 @@ If you prefer the allow list template instead of the deny list, see community te
 # Go workspace file
 go.work
 
+#Linter
+bin/golangci-lint
+
 #Env
 config/.env
