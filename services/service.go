@@ -10,6 +10,7 @@ import (
 
 type UserService interface {
 	Auth
+	Profile
 }
 
 type Auth interface {

@@ -2,12 +2,13 @@ package repositories
 
 import (
 	"context"
-	"github.com/GO-Trainee/GlebL-innotaxi-userservice/models"
 	"strconv"
 	"strings"
+
+	"github.com/GO-Trainee/GlebL-innotaxi-userservice/models"
 )
 
-type IProfileRepository interface {
+type Profile interface {
 	GetAccountInfo(id int) (models.UserInfo, error)
 	UpdateUsername(name string, id int) error
 	UpdatePhoneNumber(phoneNumber string, id int) error

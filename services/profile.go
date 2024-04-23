@@ -4,68 +4,74 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
+	"github.com/GO-Trainee/GlebL-innotaxi-userservice/config"
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/models"
 )
 
-type IProfileService interface {
-	GetAccountInfo(id int) (models.UserInfo, error)
-	UpdateProfile(id int, newData models.PatchRequest) models.UserInfo
-	DeleteProfile(id int) error
+type Profile interface {
+	GetAccountInfo(ctx context.Context, req config.GetAccountInfoRequest) (models.UserInfo, error)
+	UpdateProfile(ctx context.Context, req config.UpdateProfileRequest) (models.UserInfo, error)
+	DeleteProfile(ctx context.Context, req config.DeleteProfileRequest) error
 }
 
-func (s *Service) GetAccountInfo(id int) (info models.UserInfo, error error) {
-	if s.repo.CheckIsUserDeleted(id) {
+func (s *Service) GetAccountInfo(ctx context.Context, req config.GetAccountInfoRequest) (info models.UserInfo, error error) {
+	if s.repo.CheckIsUserDeleted(req.Id) {
 		return models.UserInfo{}, errors.New("user is deleted")
 	}
-	return s.repo.GetAccountInfo(id)
+	return s.repo.GetAccountInfo(req.Id)
 }
 
-func (s *Service) UpdateProfile(id int, newData models.PatchRequest) (models.UserInfo, error) {
-	if s.repo.CheckIsUserDeleted(id) {
+func (s *Service) UpdateProfile(ctx context.Context, req config.UpdateProfileRequest) (models.UserInfo, error) {
+	if s.repo.CheckIsUserDeleted(req.Id) {
 		return models.UserInfo{}, errors.New("user is deleted")
 	}
+
 	var newUser models.UserInfo
-	oldData, err := s.repo.GetAccountInfo(id)
+
+	oldData, err := s.repo.GetAccountInfo(req.Id)
+
 	if err != nil {
 		return newUser, err
 	}
-	existingUserErr := s.repo.CheckUserData(newData.Name, newData.PhoneNumber, newData.Email)
+	existingUserErr := s.repo.CheckUserData(req.NewData.Name, req.NewData.PhoneNumber, req.NewData.Email)
+
 	if existingUserErr != nil {
 		return models.UserInfo{}, fmt.Errorf("cannot update user: %w", existingUserErr)
 	}
-	if newData.Name != oldData.Name && newData.Name != "" {
-		err := s.repo.UpdateUsername(newData.Name, id)
+	if req.NewData.Name != oldData.Name && req.NewData.Name != "" {
+		err := s.repo.UpdateUsername(req.NewData.Name, req.Id)
 		if err != nil {
 			return models.UserInfo{}, err
 		}
 	}
-	if newData.PhoneNumber != oldData.PhoneNumber && newData.PhoneNumber != "" {
-		err := s.repo.UpdatePhoneNumber(newData.PhoneNumber, id)
+	if req.NewData.PhoneNumber != oldData.PhoneNumber && req.NewData.PhoneNumber != "" {
+		err := s.repo.UpdatePhoneNumber(req.NewData.PhoneNumber, req.Id)
 		if err != nil {
 			return models.UserInfo{}, err
 		}
 	}
-	if newData.Email != oldData.Email && newData.Email != "" {
-		err := s.repo.UpdateEmail(newData.Email, id)
+	if req.NewData.Email != oldData.Email && req.NewData.Email != "" {
+		err := s.repo.UpdateEmail(req.NewData.Email, req.Id)
 		if err != nil {
 			return models.UserInfo{}, err
 		}
 	}
-	newUser, err = s.repo.GetAccountInfo(id)
+	newUser, err = s.repo.GetAccountInfo(req.Id)
 	if err != nil {
 		return newUser, err
 	}
 	return newUser, nil
 }
 
-func (s *Service) DeleteProfile(ctx context.Context, id int) error {
-	if s.repo.CheckIsUserDeleted(id) {
+func (s *Service) DeleteProfile(ctx context.Context, req config.DeleteProfileRequest) error {
+	if s.repo.CheckIsUserDeleted(req.Id) {
 		return errors.New("user is deleted")
 	}
-	if err := s.repo.UpdateDeletedStatus(id); err != nil {
+	if err := s.repo.UpdateDeletedStatus(req.Id); err != nil {
 		return err
 	}
-	if err := s.repo.DeleteAllSessions(ctx, id); err != nil {
+	if err := s.repo.DeleteAllSessions(ctx, req.Id); err != nil {
 		return err
 	}
 	return nil

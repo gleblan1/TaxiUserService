@@ -20,3 +20,22 @@ type LogoutRequest struct {
 type RefreshTokensRequest struct {
 	RefreshToken string
 }
+
+type PatchRequest struct {
+	Name        string
+	PhoneNumber string
+	Email       string
+}
+
+type GetAccountInfoRequest struct {
+	Id int
+}
+
+type UpdateProfileRequest struct {
+	Id      int
+	NewData PatchRequest
+}
+
+type DeleteProfileRequest struct {
+	Id int
+}

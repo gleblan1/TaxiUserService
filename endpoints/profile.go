@@ -1,58 +1,29 @@
-package handler
+package endpoints
 
 import (
-	"github.com/GO-Trainee/GlebL-innotaxi-userservice/models"
-	"github.com/GO-Trainee/GlebL-innotaxi-userservice/utils"
-	"github.com/gin-gonic/gin"
-	"net/http"
-	"strconv"
+	"context"
+
+	"github.com/GO-Trainee/GlebL-innotaxi-userservice/config"
+	"github.com/GO-Trainee/GlebL-innotaxi-userservice/services"
 )
 
-func (h *Handler) GetAccountInfo(c *gin.Context) {
-	token := utils.GetTokenFromHeader(c)
-	claims, err := utils.ExtractClaims(token)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+func GetAccountInfo(UserService services.UserService) Endpoint {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		requestBody := request.(config.GetAccountInfoRequest)
+		return UserService.GetAccountInfo(ctx, requestBody)
 	}
-	id, _ := strconv.Atoi(claims.Audience)
-	response, err := h.s.GetAccountInfo(id)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, response)
 }
 
-func (h *Handler) UpdateProfile(c *gin.Context) {
-	var newData models.PatchRequest
-	if err := c.ShouldBindJSON(&newData); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+func UpdateProfile(UserService services.UserService) Endpoint {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		requestBody := request.(config.UpdateProfileRequest)
+		return UserService.UpdateProfile(ctx, requestBody)
 	}
-	token := utils.GetTokenFromHeader(c)
-	claims, err := utils.ExtractClaims(token)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-	}
-	id, _ := strconv.Atoi(claims.Audience)
-	profile, err := h.s.UpdateProfile(id, newData)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, profile)
 }
 
-func (h *Handler) DeleteProfile(c *gin.Context) {
-	token := utils.GetTokenFromHeader(c)
-	claims, err := utils.ExtractClaims(token)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+func DeleteProfile(UserService services.UserService) Endpoint {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		requestBody := request.(config.DeleteProfileRequest)
+		return UserService.DeleteProfile(ctx, requestBody), nil
 	}
-	id, _ := strconv.Atoi(claims.Audience)
-	if err := h.s.DeleteProfile(c, id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-	}
-	c.JSON(http.StatusNoContent, gin.H{"message": "Profile deleted"})
 }
