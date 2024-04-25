@@ -21,7 +21,6 @@ type CashInWalletRequest struct {
 
 type AddUserToWalletRequest struct {
 	WalletId  int `json:"wallet_id"`
-	UserId    int `json:"user_id"`
 	UserToAdd int `json:"user_to_add"`
 }
 
@@ -103,14 +102,27 @@ func (h *Handler) AddUserToWallet(c *gin.Context) {
 		return
 	}
 
-	requestBody := config.AddUserToWalletRequest{
-		WalletId:  req.WalletId,
-		UserId:    req.UserId,
-		UserToAdd: req.UserToAdd,
-	}
-	if err, _ := h.e.AddUserToWallet(c, requestBody); err != nil {
+	claims, err := utils.ExtractClaims(utils.GetTokenFromHeader(c))
+	if err != nil {
+		utils.DefineResponse(c, http.StatusBadRequest, err)
 		return
 	}
+	id, err := strconv.Atoi(claims.Audience)
+	if err != nil {
+		utils.DefineResponse(c, http.StatusBadRequest, err)
+		return
+	}
+
+	requestBody := config.AddUserToWalletRequest{
+		UserId:    id,
+		UserToAdd: req.UserToAdd,
+	}
+	response, err := h.e.AddUserToWallet(c, requestBody)
+	if err != nil {
+		utils.DefineResponse(c, http.StatusBadRequest, err)
+		return
+	}
+	utils.DefineResponse(c, http.StatusOK, err, response)
 	return
 }
 

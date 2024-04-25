@@ -30,8 +30,7 @@ func (s *Service) CashInWallet(ctx context.Context, req config.CashInWalletReque
 }
 
 func (s *Service) AddUserToWallet(ctx context.Context, req config.AddUserToWalletRequest) (models.Wallet, error) {
-	wallet := models.Wallet{}
-	return wallet, nil
+	return s.repo.AddUserToWallet(ctx, req.UserToAdd, req.UserId)
 }
 
 func (s *Service) GetWalletTransactions(ctx context.Context, req config.GetWalletTransactionsRequest) (models.WalletHistory, error) {
@@ -52,5 +51,3 @@ func (s *Service) Pay(ctx context.Context, req config.PayRequest) (models.Wallet
 func (s *Service) CreateWallet(ctx context.Context, req config.CreateWalletRequest) (models.Wallet, error) {
 	return s.repo.CreateWallet(ctx, req.UserId, req.IsFamily)
 }
-
-//also need to create func for checking is the user is owner of wallet
