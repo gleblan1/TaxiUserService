@@ -1,8 +1,9 @@
 package http
 
 import (
-	"github.com/GO-Trainee/GlebL-innotaxi-userservice/middleware"
 	"github.com/gin-gonic/gin"
+
+	"github.com/GO-Trainee/GlebL-innotaxi-userservice/middleware"
 )
 
 type Router struct {

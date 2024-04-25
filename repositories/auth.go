@@ -12,15 +12,6 @@ import (
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/models"
 )
 
-type Auth interface {
-	GetData(phone string) (string, int, error)
-	SignUp(name, phoneNumber, email, password string) (models.User, error)
-	LogOut(ctx context.Context, session, id int) error
-	GetRefreshToken(ctx context.Context, id, session string) string
-	GetAccessToken(ctx context.Context, id, session string) string
-	SetTokens(ctx context.Context, accessToken string, refreshToken, id, session string)
-}
-
 func (r *Repository) GetData(phone string) (string, int, error) {
 	var userId int
 	err := r.db.QueryRowx("SELECT id FROM users WHERE phone_number = $1 AND deleted_at IS NULL", phone).Scan(&userId)

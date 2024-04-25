@@ -4,13 +4,14 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/gin-gonic/gin"
+
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/services"
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/utils"
-	"github.com/gin-gonic/gin"
 )
 
 type Middleware struct {
-	s *services.Service
+	service *services.Service
 }
 
 func NewMiddleware(options ...func(*Middleware)) *Middleware {
@@ -21,20 +22,20 @@ func NewMiddleware(options ...func(*Middleware)) *Middleware {
 	return repo
 }
 
-func WithAuthMiddleware(s *services.Service) func(*Middleware) {
-	return func(m *Middleware) {
-		m.s = s
+func WithAuthMiddleware(service *services.Service) func(*Middleware) {
+	return func(middleware *Middleware) {
+		middleware.service = service
 	}
 }
 
-func (s *Middleware) ValidateToken() gin.HandlerFunc {
+func (m *Middleware) ValidateToken() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		accessToken := utils.GetTokenFromHeader(c)
 		if accessToken == "" {
 			utils.DefineResponse(c, http.StatusUnauthorized, errors.New("unauthorized"))
 			return
 		}
-		isTokenValid, err := s.s.ValidateToken(c, accessToken)
+		isTokenValid, err := m.service.ValidateToken(c, accessToken)
 		if err != nil {
 			utils.DefineResponse(c, http.StatusUnauthorized, errors.New("invalid token"))
 			return
@@ -43,5 +44,6 @@ func (s *Middleware) ValidateToken() gin.HandlerFunc {
 			utils.DefineResponse(c, http.StatusUnauthorized, errors.New("unauthorized"))
 			return
 		}
+		c.Next()
 	}
 }

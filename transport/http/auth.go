@@ -5,9 +5,10 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/GO-Trainee/GlebL-innotaxi-userservice/config"
-	"github.com/GO-Trainee/GlebL-innotaxi-userservice/utils"
+	"github.com/GO-Trainee/GlebL-innotaxi-userservice/requests"
 	"github.com/gin-gonic/gin"
+
+	"github.com/GO-Trainee/GlebL-innotaxi-userservice/utils"
 )
 
 type RefreshRequestBody struct {
@@ -33,7 +34,7 @@ func (h *Handler) SignUp(c *gin.Context) {
 		return
 	}
 
-	requestBody := config.RegisterRequest{
+	requestBody := requests.RegisterRequest{
 		Name:        req.Name,
 		Email:       req.Email,
 		PhoneNumber: req.PhoneNumber,
@@ -57,7 +58,7 @@ func (h *Handler) LogIn(c *gin.Context) {
 		return
 	}
 
-	requestBody := config.LoginRequest{
+	requestBody := requests.LoginRequest{
 		PhoneNumber: req.PhoneNumber,
 		Password:    req.Password,
 	}
@@ -87,7 +88,7 @@ func (h *Handler) LogOut(c *gin.Context) {
 		utils.DefineResponse(c, http.StatusBadRequest, err)
 		return
 	}
-	requestBody := config.LogoutRequest{
+	requestBody := requests.LogoutRequest{
 		SessionId: session,
 		UserId:    id,
 	}
@@ -103,7 +104,7 @@ func (h *Handler) Refresh(c *gin.Context) {
 		RefreshToken: refreshTokenString,
 	}
 
-	requestBody := config.RefreshRequestBody{
+	requestBody := requests.RefreshRequestBody{
 		RefreshToken: req.RefreshToken,
 	}
 

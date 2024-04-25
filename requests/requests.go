@@ -1,4 +1,4 @@
-package config
+package requests
 
 type RegisterRequest struct {
 	Name        string

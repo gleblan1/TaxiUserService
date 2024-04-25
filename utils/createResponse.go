@@ -14,9 +14,9 @@ func DefineResponse(c *gin.Context, code int, err error, response ...interface{}
 		errMsg = ""
 	}
 	Response = models.Response{
-		Code:     code,
-		Message:  errMsg,
-		Response: response,
+		StatusCode: code,
+		Message:    errMsg,
+		Response:   response,
 	}
 	c.JSON(code, Response)
 }

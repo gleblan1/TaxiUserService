@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/gin-gonic/gin"
+
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/endpoints"
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/utils"
-	"github.com/gin-gonic/gin"
 )
 
 type Handler struct {

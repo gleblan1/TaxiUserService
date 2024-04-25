@@ -4,6 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator/v10"
+	"golang.org/x/sync/errgroup"
+
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/endpoints"
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/middleware"
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/providers"
@@ -11,14 +15,22 @@ import (
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/services"
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/transport/http"
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/utils"
-	"github.com/gin-gonic/gin/binding"
-	"github.com/go-playground/validator/v10"
-	"golang.org/x/sync/errgroup"
 )
 
 func Run(ctx context.Context, stop context.CancelFunc) error {
 	g, gCtx := errgroup.WithContext(ctx)
-	postgresDB, redisDB, err := providers.InitDB()
+	psql, err := providers.InitPostgres()
+	if err != nil {
+		return err
+	}
+	redis, err := providers.InitRedis(ctx)
+	if err != nil {
+		return err
+	}
+	DB := providers.NewDB(
+		providers.WithPsql(psql),
+		providers.WithRedis(redis),
+	)
 	if err != nil {
 		return fmt.Errorf("init postgres db err: %v", err)
 	}
@@ -34,8 +46,8 @@ func Run(ctx context.Context, stop context.CancelFunc) error {
 	}
 
 	repos := repositories.NewRepository(
-		repositories.WithPostgresRepository(postgresDB),
-		repositories.WithRedisClient(*redisDB),
+		repositories.WithPostgresRepository(DB.Psql),
+		repositories.WithRedisClient(*DB.Redis),
 	)
 
 	service := services.NewService(
@@ -57,7 +69,11 @@ func Run(ctx context.Context, stop context.CancelFunc) error {
 		http.WithMiddleware(middlewares),
 	)
 	g.Go(func() error {
-		if err := providers.InitServer("8000", router.InitRoutes()); err != nil {
+		server := providers.NewServer(
+			providers.WithPort(utils.ReadValue("PORT")),
+			providers.WithServer(router.InitRoutes()),
+		)
+		if err := providers.InitServer(server.Port, server.Server); err != nil {
 			return fmt.Errorf("cannot run the server: %w", err)
 		}
 		return nil
@@ -66,8 +82,6 @@ func Run(ctx context.Context, stop context.CancelFunc) error {
 	select {
 	case <-gCtx.Done():
 		stop()
-		return g.Wait()
-	case <-ctx.Done():
 		fmt.Println(" Exited")
 		return nil
 	}

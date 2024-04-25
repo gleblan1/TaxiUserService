@@ -7,13 +7,23 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GO-Trainee/GlebL-innotaxi-userservice/models"
 	"github.com/jmoiron/sqlx"
 	"github.com/redis/go-redis/v9"
+
+	"github.com/GO-Trainee/GlebL-innotaxi-userservice/models"
 )
 
 type UserRepository interface {
 	Auth
+}
+
+type Auth interface {
+	GetData(phone string) (string, int, error)
+	SignUp(name, phoneNumber, email, password string) (models.User, error)
+	LogOut(ctx context.Context, session, id int) error
+	GetRefreshToken(ctx context.Context, id, session string) string
+	GetAccessToken(ctx context.Context, id, session string) string
+	SetTokens(ctx context.Context, accessToken string, refreshToken, id, session string)
 }
 
 type Repository struct {

@@ -3,11 +3,12 @@ package providers
 import (
 	"fmt"
 
-	"github.com/GO-Trainee/GlebL-innotaxi-userservice/utils"
 	"github.com/jmoiron/sqlx"
+
+	"github.com/GO-Trainee/GlebL-innotaxi-userservice/utils"
 )
 
-func initPostgres() (*sqlx.DB, error) {
+func InitPostgres() (*sqlx.DB, error) {
 	db, err := sqlx.Open("postgres", utils.DbConnectionString())
 	if err != nil {
 		return nil, fmt.Errorf("db connection error: %w", err)

@@ -8,8 +8,8 @@ CREATE TABLE users (
     password_hash VARCHAR(255) NOT NULL,
     rating FLOAT DEFAULT 0,
     deleted_at timestamptz,
-    created_at timestamptz NOT NULL,
-    updated_at timestamptz NOT NULL
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE INDEX idx_deleted_at ON users(deleted_at);

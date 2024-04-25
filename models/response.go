@@ -1,7 +1,7 @@
 package models
 
 type Response struct {
-	Code     int         `json:"code"`
-	Message  string      `json:"message,omitempty"`
-	Response interface{} `json:"response,omitempty"`
+	StatusCode int         `json:"status_code"`
+	Message    string      `json:"message,omitempty"`
+	Response   interface{} `json:"response,omitempty"`
 }

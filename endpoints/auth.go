@@ -3,27 +3,27 @@ package endpoints
 import (
 	"context"
 
-	"github.com/GO-Trainee/GlebL-innotaxi-userservice/config"
+	"github.com/GO-Trainee/GlebL-innotaxi-userservice/requests"
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/services"
 )
 
 func SignUp(UserService services.UserService) Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		requestBody := request.(config.RegisterRequest)
+		requestBody := request.(requests.RegisterRequest)
 		return UserService.SignUp(ctx, requestBody)
 	}
 }
 
 func Login(UserService services.UserService) Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		requestBody := request.(config.LoginRequest)
+		requestBody := request.(requests.LoginRequest)
 		return UserService.Login(ctx, requestBody)
 	}
 }
 
 func LogOut(UserService services.UserService) Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		requestBody := request.(config.LogoutRequest)
+		requestBody := request.(requests.LogoutRequest)
 		err := UserService.LogOut(ctx, requestBody)
 		if err != nil {
 			return nil, err
@@ -34,7 +34,7 @@ func LogOut(UserService services.UserService) Endpoint {
 
 func Refresh(UserService services.UserService) Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		requestBody := request.(config.RefreshRequestBody)
+		requestBody := request.(requests.RefreshRequestBody)
 		return UserService.Refresh(ctx, requestBody)
 	}
 }
