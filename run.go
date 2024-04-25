@@ -1,9 +1,10 @@
-package main
+package innoTaxi_userService
 
 import (
 	"context"
 	"fmt"
 
+	"github.com/GO-Trainee/GlebL-innotaxi-userservice/repositories/databases"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/endpoints"
@@ -17,11 +18,11 @@ import (
 
 func Run(ctx context.Context, stop context.CancelFunc) error {
 	g, gCtx := errgroup.WithContext(ctx)
-	psql, err := providers.InitPostgres()
+	psql, err := databases.InitPostgres()
 	if err != nil {
 		return err
 	}
-	redis, err := providers.InitRedis(ctx)
+	redis, err := databases.InitRedis(ctx)
 	if err != nil {
 		return err
 	}
@@ -30,7 +31,7 @@ func Run(ctx context.Context, stop context.CancelFunc) error {
 		providers.WithRedis(redis),
 	)
 	if err != nil {
-		return fmt.Errorf("init postgres db err: %v", err)
+		return fmt.Errorf("databases postgres db err: %v", err)
 	}
 
 	repos := repositories.NewRepository(
