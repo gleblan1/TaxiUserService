@@ -16,14 +16,14 @@ type RefreshRequestBody struct {
 }
 
 type RegisterRequest struct {
-	Name        string `json:"name" binding:"required,min=4,max=20"`
-	Email       string `json:"email" binding:"required,emailValid"`
-	PhoneNumber string `json:"phone_number" binding:"required,phoneValid"`
+	Name        string `json:"name" binding:"required,min=4,max=20,alpha"`
+	Email       string `json:"email" binding:"required,email"`
+	PhoneNumber string `json:"phone_number" binding:"required,e164,len=13"`
 	Password    string `json:"password" binding:"required,min=8"`
 }
 
 type LoginRequest struct {
-	PhoneNumber string `json:"phone_number" binding:"required,phoneValid"`
+	PhoneNumber string `json:"phone_number" binding:"required,e164"`
 	Password    string `json:"password" binding:"required,min=8"`
 }
 

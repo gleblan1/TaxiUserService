@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/gin-gonic/gin/binding"
-	"github.com/go-playground/validator/v10"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/endpoints"
@@ -33,16 +31,6 @@ func Run(ctx context.Context, stop context.CancelFunc) error {
 	)
 	if err != nil {
 		return fmt.Errorf("init postgres db err: %v", err)
-	}
-	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
-		err := v.RegisterValidation("emailValid", utils.EmailValid)
-		if err != nil {
-			return err
-		}
-		err = v.RegisterValidation("phoneValid", utils.PhoneValid)
-		if err != nil {
-			return err
-		}
 	}
 
 	repos := repositories.NewRepository(
