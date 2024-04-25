@@ -18,7 +18,6 @@ clean:
 
 migrations up:
 	$GOPATH/bin/goose -dir ./migrations postgres "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable" up
-
 migrations down:
 	$GOPATH/bin/goose -dir ./migrations postgres "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable" down
 

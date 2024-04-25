@@ -11,6 +11,7 @@ import (
 type UserService interface {
 	Auth
 	Profile
+	Wallet
 }
 
 type Auth interface {

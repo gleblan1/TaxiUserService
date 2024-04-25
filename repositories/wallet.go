@@ -1,0 +1,319 @@
+package repositories
+
+import (
+	"context"
+	"database/sql"
+	"errors"
+	"fmt"
+
+	"github.com/GO-Trainee/GlebL-innotaxi-userservice/models"
+)
+
+type Wallet interface {
+	GetWalletInfo(ctx context.Context, userId int) (models.Wallet, error)
+	CashInWallet(ctx context.Context, walletID, userId int, amount float64) (models.Wallet, error)
+	AddUserToWallet(ctx context.Context, walletID, userId int, userToAdd int) (models.Wallet, error)
+	GetWalletTransactions(ctx context.Context, userId int) (models.WalletHistory, error)
+	ChooseWallet(ctx context.Context, walletID, userId int) (models.Wallet, error)
+	Pay(ctx context.Context, walletID, userId, toWalletId int, amount float64) (models.Wallet, error)
+	CreateWallet(ctx context.Context, userId int, isFamily bool) (models.Wallet, error)
+}
+
+type transactionFromDB struct {
+	id         int
+	walletFrom int
+	walletTo   int
+	amount     float64
+	status     string
+}
+
+func (r *Repository) GetWalletInfo(ctx context.Context, userId int) (models.Wallet, error) {
+	var walletFromDB models.WalletFromDB
+	var currentWalletId int
+	err := r.db.QueryRow("SELECT current_wallet_id FROM users WHERE id = $1", userId).Scan(&currentWalletId)
+	if err != nil {
+		return models.Wallet{}, errors.New("choose the wallet")
+	}
+
+	err = r.db.QueryRow("SELECT id, user_id, balance, is_family FROM wallets WHERE id = $1", currentWalletId).Scan(&walletFromDB.Id, &walletFromDB.OwnerId, &walletFromDB.Balance, &walletFromDB.IsFamily)
+	if err != nil {
+		return models.Wallet{}, errors.New("choose wallet please" + err.Error())
+	}
+
+	var owner models.WalletMember
+	var members []models.WalletMember
+
+	err = r.db.QueryRow("SELECT id, name, phone_number, email, rating FROM users WHERE current_wallet_id = $1", currentWalletId).Scan(&owner.Id, &owner.Name, &owner.PhoneNumber, &owner.Email, &owner.Rating)
+	if err != nil {
+		fmt.Println(err)
+		return models.Wallet{}, errors.New("choose wallet please")
+	}
+
+	rows, err := r.db.Query("SELECT user_id FROM family_wallets WHERE wallet_id = $1", walletFromDB.Id)
+	defer rows.Close()
+
+	for rows.Next() {
+		var member models.WalletMember
+
+		err = rows.Scan(&member.Id)
+		if err != nil {
+			return models.Wallet{}, err
+		}
+		_ = r.db.QueryRow("SELECT id, name, phone_number, email, rating FROM users WHERE id = $1", member.Id).Scan(&member.Id, &member.Name, &member.PhoneNumber, &member.Email, &member.Rating)
+		members = append(members, member)
+	}
+
+	wallet := models.Wallet{
+		Id:       walletFromDB.Id,
+		Balance:  walletFromDB.Balance,
+		IsFamily: walletFromDB.IsFamily,
+		Owner:    owner,
+		Users:    append(members, owner),
+	}
+
+	return wallet, nil
+}
+
+func (r *Repository) GetWalletInfoByWalletId(ctx context.Context, walletId int) (models.Wallet, error) {
+	var walletFromDB models.WalletFromDB
+
+	err := r.db.QueryRow("SELECT id, user_id, balance, is_family FROM wallets WHERE id = $1", walletId).Scan(&walletFromDB.Id, &walletFromDB.OwnerId, &walletFromDB.Balance, &walletFromDB.IsFamily)
+	if err != nil {
+		return models.Wallet{}, errors.New("choose wallet please")
+	}
+
+	var owner models.WalletMember
+	var members []models.WalletMember
+
+	err = r.db.QueryRow("SELECT id, name, phone_number, email, rating FROM users WHERE current_wallet_id = $1", walletFromDB.OwnerId).Scan(&owner.Id, &owner.Name, &owner.PhoneNumber, &owner.Email, &owner.Rating)
+	if err != nil {
+		return models.Wallet{}, nil
+	}
+
+	rows, err := r.db.Query("SELECT user_id FROM wallets WHERE id = $1", walletFromDB.Id)
+	defer rows.Close()
+
+	for rows.Next() {
+		var member models.WalletMember
+
+		err = rows.Scan(&member.Id)
+		if err != nil {
+			return models.Wallet{}, err
+		}
+		fmt.Println(member.Id)
+		_ = r.db.QueryRow("SELECT id, name, phone_number, email, rating FROM users WHERE id = $1", member.Id).Scan(&member.Id, &member.Name, &member.PhoneNumber, &member.Email, &member.Rating)
+		members = append(members, member)
+	}
+
+	wallet := models.Wallet{
+		Id:       walletFromDB.Id,
+		Balance:  walletFromDB.Balance,
+		IsFamily: walletFromDB.IsFamily,
+		Owner:    owner,
+		Users:    append(members),
+	}
+
+	return wallet, nil
+}
+
+func (r *Repository) CashInWallet(ctx context.Context, walletID int, userId int, amount float64) (models.Wallet, error) {
+	var currentBalance float64
+	err := r.db.QueryRow("SELECT balance FROM wallets WHERE id = $1", walletID).Scan(&currentBalance)
+	if err != nil {
+		fmt.Println(err)
+		return models.Wallet{}, err
+	}
+	fmt.Println(currentBalance)
+	finalBalance := currentBalance + amount
+	_, err = r.db.Exec("UPDATE wallets SET balance = $1 WHERE id = $2", finalBalance, walletID)
+	if err != nil {
+		return models.Wallet{}, errors.New("wallet is not exists")
+	}
+
+	return models.Wallet{}, nil
+}
+
+//TODO: можно при добавлении юзера сделать типа нотификацию в редисе в виде дата:сообщение, и возможность принять приглашение в семейный кошель
+
+func (r *Repository) AddUserToWallet(ctx context.Context, walletID, userId, userToAdd int) (models.Wallet, error) {
+	wallet := models.Wallet{}
+	return wallet, nil
+}
+
+func (r *Repository) GetWalletTransactions(ctx context.Context, userId int) (models.WalletHistory, error) {
+	var transactions []models.Transaction
+	var walletHistory models.WalletHistory
+	var transactionFromQuery transactionFromDB
+	currentWalletId, err := r.GetCurrentWalletId(ctx, userId)
+	if err != nil {
+		return walletHistory, err
+	}
+	rows, err := r.db.Query("SELECT id FROM transactions WHERE from_wallet = $1", currentWalletId)
+	if err != nil {
+		return walletHistory, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var transaction models.Transaction
+
+		err = rows.Scan(&transaction.Id)
+		if err != nil {
+			return walletHistory, err
+		}
+		_ = r.db.QueryRow("SELECT id, from_wallet, to_wallet, amount, status FROM transactions WHERE id = $1", transaction.Id).Scan(&transactionFromQuery.id, &transactionFromQuery.walletFrom, &transactionFromQuery.walletTo, &transactionFromQuery.amount, &transactionFromQuery.status)
+
+		var walletFrom models.Wallet
+		var walletTo models.Wallet
+
+		walletFrom, err = r.GetWalletInfoByWalletId(ctx, transactionFromQuery.walletFrom)
+		if err != nil {
+			fmt.Println(currentWalletId, rows, err)
+			return walletHistory, err
+		}
+		walletTo, err = r.GetWalletInfoByWalletId(ctx, transactionFromQuery.walletTo)
+		if err != nil {
+			return walletHistory, err
+		}
+		transaction = models.Transaction{
+			Id:         transactionFromQuery.id,
+			FromWallet: walletFrom,
+			ToWallet:   walletTo,
+			Amount:     transactionFromQuery.amount,
+			Status:     transactionFromQuery.status,
+		}
+		transactions = append(transactions, transaction)
+	}
+
+	walletHistory = models.WalletHistory{
+		Transactions: transactions,
+	}
+	return walletHistory, nil
+}
+
+func (r *Repository) ChooseWallet(ctx context.Context, walletID, userId int) (models.Wallet, error) {
+	var userOwnerId int
+	err := r.db.QueryRow("SELECT user_id FROM wallets WHERE id =$1", walletID).Scan(&userOwnerId)
+	if err != nil {
+		return models.Wallet{}, err
+	}
+
+	if userOwnerId == userId {
+		_, err = r.db.Exec("UPDATE users SET current_wallet_id = $1 WHERE id = $2", walletID, userId)
+		if err != nil {
+			return models.Wallet{}, errors.New("wallet is not exists")
+		}
+		return models.Wallet{}, nil
+	}
+
+	return models.Wallet{}, errors.New("it is not your wallet")
+
+}
+
+func (r *Repository) GetCurrentWalletId(ctx context.Context, userId int) (int, error) {
+	var id int
+	err := r.db.QueryRow("SELECT current_wallet_id FROM users WHERE id = $1", userId).Scan(&id)
+	if err != nil {
+		return 0, errors.New("choose wallet")
+	}
+	return id, nil
+}
+
+func (r *Repository) CheckBalance(ctx context.Context, amount float64, userId int) error {
+	var balance float64
+	currentWalletId, err := r.GetCurrentWalletId(ctx, userId)
+	if err != nil {
+		return err
+	}
+	err = r.db.QueryRow("SELECT balance FROM wallets WHERE id = $1", currentWalletId).Scan(&balance)
+	if err != nil {
+		return err
+	}
+	finalValue := balance - amount
+	if finalValue < 0 {
+		return errors.New("not enough balance")
+	} else if amount <= 0 {
+		return errors.New("incorrect value")
+	}
+	return nil
+}
+
+func (r *Repository) Pay(ctx context.Context, userId, toWalletId int, amount float64) (models.Wallet, error) {
+	walletID, err := r.GetCurrentWalletId(ctx, userId)
+	if err != nil {
+		return models.Wallet{}, err
+	}
+	tx, err := r.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return models.Wallet{}, err
+	}
+	defer (func() {
+		if err != nil {
+			tx.Rollback()
+			tx.ExecContext(ctx, "UPDATE transactions SET status = 'failed'")
+		}
+	})()
+
+	var id int64
+	err = tx.QueryRowContext(ctx, "INSERT INTO transactions (from_wallet, to_wallet, amount, status) VALUES ($1, $2, $3, $4) RETURNING id", walletID, toWalletId, amount, "started").Scan(&id)
+	if err != nil {
+		return models.Wallet{}, err
+	}
+	_, err = tx.ExecContext(ctx, "UPDATE wallets SET balance = balance - $1 WHERE id = $2", amount, walletID)
+	if err != nil {
+		return models.Wallet{}, err
+	}
+
+	_, err = tx.ExecContext(ctx, "UPDATE wallets SET balance = balance + $1 WHERE id = $2", amount, toWalletId)
+	if err != nil {
+		return models.Wallet{}, err
+	}
+
+	_, err = tx.ExecContext(ctx, "UPDATE transactions SET status = 'success' WHERE id=$1", id)
+	if err != nil {
+		return models.Wallet{}, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return models.Wallet{}, err
+	}
+
+	return models.Wallet{}, nil
+}
+
+func (r *Repository) CreateWallet(ctx context.Context, userId int, isFamily bool) (models.Wallet, error) {
+	var wallet models.Wallet
+
+	var user models.WalletMember
+	err := r.db.QueryRow("SELECT id, name, phone_number, email, rating FROM users WHERE id = $1", userId).Scan(&user.Id, &user.Name, &user.PhoneNumber, &user.Email, &user.Rating)
+	if err != nil {
+		return models.Wallet{}, err
+	}
+
+	stmt, err := r.db.Prepare("INSERT INTO wallets(user_id, is_family, created_at, updated_at) VALUES ($1, $2, now(), now()) RETURNING id")
+	if err != nil {
+		return wallet, fmt.Errorf("error preparing SQL statement: %w", err)
+	}
+	defer func(stmt *sql.Stmt) {
+		err := stmt.Close()
+		if err != nil {
+		}
+	}(stmt)
+
+	err = stmt.QueryRow(userId, isFamily).Scan(&wallet.Id)
+	if err != nil {
+		return wallet, fmt.Errorf("error executing SQL statement: %w", err)
+	}
+
+	wallet = models.Wallet{
+		Id:       wallet.Id,
+		Users:    append(wallet.Users, user),
+		Owner:    user,
+		IsFamily: isFamily,
+	}
+
+	return wallet, nil
+
+}
+
+//also need to create func for checking is the user is owner of wallet

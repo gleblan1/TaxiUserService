@@ -46,5 +46,15 @@ func (r *Router) NewRoutes() *gin.Engine {
 	profile.PATCH("/", r.handler.UpdateProfile)
 	profile.DELETE("/", r.handler.DeleteProfile)
 	profile.GET("/", r.handler.GetAccountInfo)
+
+	wallet := router.Group("/wallet")
+	wallet.Use(r.authMiddleware.ValidateToken())
+	wallet.GET("/", r.handler.GetWalletInfo)
+	wallet.GET("/transactions", r.handler.GetWalletTransactions)
+	wallet.PATCH("/cash-in", r.handler.CashInWallet)
+	wallet.POST("/add-user", r.handler.AddUserToWallet)
+	wallet.POST("/pay", r.handler.Pay)
+	wallet.PATCH("/choose", r.handler.ChooseWallet)
+	wallet.POST("/create", r.handler.CreateWallet)
 	return router
 }

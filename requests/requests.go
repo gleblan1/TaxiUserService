@@ -1,5 +1,7 @@
 package requests
 
+//auth
+
 type RegisterRequest struct {
 	Name        string
 	Email       string
@@ -27,6 +29,8 @@ type PatchRequest struct {
 	Email       string
 }
 
+//profile
+
 type GetAccountInfoRequest struct {
 	Id int
 }
@@ -40,4 +44,42 @@ type UpdateProfileRequest struct {
 
 type DeleteProfileRequest struct {
 	Id int
+}
+
+//wallets
+
+type GetWalletInfoRequest struct {
+	UserId int
+}
+
+type CashInWalletRequest struct {
+	WalletId int
+	UserId   int
+	Amount   float64
+}
+
+type AddUserToWalletRequest struct {
+	WalletId  int
+	UserId    int
+	UserToAdd int
+}
+
+type GetWalletTransactionsRequest struct {
+	UserId int
+}
+
+type ChooseWalletRequest struct {
+	WalletId int
+	UserId   int
+}
+
+type PayRequest struct {
+	UserId     int
+	ToWalletId int
+	Amount     float64
+}
+
+type CreateWalletRequest struct {
+	UserId   int
+	IsFamily bool
 }
