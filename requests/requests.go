@@ -54,7 +54,6 @@ type GetWalletInfoRequest struct {
 
 type CashInWalletRequest struct {
 	WalletId int
-	UserId   int
 	Amount   float64
 }
 
