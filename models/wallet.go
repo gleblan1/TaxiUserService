@@ -3,17 +3,17 @@ package models
 type Wallet struct {
 	Id       int            `json:"id"`
 	Users    []WalletMember `json:"users"`
-	Balance  float64        `json:"balance"`
+	Balance  int64          `json:"balance"`
 	Owner    WalletMember   `json:"owner"`
 	IsFamily bool           `json:"is_family"`
 }
 
 type Transaction struct {
-	Id         int     `json:"id"`
-	FromWallet Wallet  `json:"from_wallet"`
-	ToWallet   Wallet  `json:"to_wallet"`
-	Amount     float64 `json:"amount"`
-	Status     string  `json:"status"`
+	Id         int    `json:"id"`
+	FromWallet Wallet `json:"from_wallet"`
+	ToWallet   Wallet `json:"to_wallet"`
+	Amount     int64  `json:"amount"`
+	Status     string `json:"status"`
 }
 
 type FamilyWallet struct {
@@ -31,10 +31,10 @@ type WalletMember struct {
 }
 
 type WalletFromDB struct {
-	Id       int     `json:"id"`
-	OwnerId  int     `json:"user_id"`
-	Balance  float64 `json:"balance"`
-	IsFamily bool    `json:"is_family"`
+	Id       int   `json:"id"`
+	OwnerId  int   `json:"user_id"`
+	Balance  int64 `json:"balance"`
+	IsFamily bool  `json:"is_family"`
 }
 
 type WalletHistory struct {

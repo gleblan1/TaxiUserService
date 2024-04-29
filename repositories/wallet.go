@@ -7,13 +7,14 @@ import (
 	"fmt"
 
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/models"
+	"github.com/shopspring/decimal"
 )
 
 type transactionFromDB struct {
 	id         int
 	walletFrom int
 	walletTo   int
-	amount     float64
+	amount     int64
 	status     string
 }
 
@@ -39,7 +40,12 @@ func (r *Repository) GetWalletInfo(ctx context.Context, userId int) (models.Wall
 	}
 
 	rows, err := r.db.Query("SELECT user_id FROM family_wallets WHERE wallet_id = $1", walletFromDB.Id)
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+
+		}
+	}(rows)
 
 	for rows.Next() {
 		var member models.WalletMember
@@ -63,8 +69,8 @@ func (r *Repository) GetWalletInfo(ctx context.Context, userId int) (models.Wall
 	return wallet, nil
 }
 
-func (r *Repository) CashInWallet(ctx context.Context, walletID int, amount float64) (models.Wallet, error) {
-	var currentBalance float64
+func (r *Repository) CashInWallet(ctx context.Context, walletID int, amount int64) (models.Wallet, error) {
+	var currentBalance int64
 	err := r.db.QueryRow("SELECT balance FROM wallets WHERE id = $1", walletID).Scan(&currentBalance)
 	if err != nil {
 		fmt.Println(err)
@@ -147,7 +153,7 @@ func (r *Repository) GetWalletInfoByWalletId(ctx context.Context, walletId int) 
 	}
 	wallet = models.Wallet{
 		Id:       wallet.Id,
-		Users:    members,
+		Users:    append(members, owner),
 		Balance:  wallet.Balance,
 		Owner:    owner,
 		IsFamily: wallet.IsFamily,
@@ -155,19 +161,20 @@ func (r *Repository) GetWalletInfoByWalletId(ctx context.Context, walletId int) 
 	return wallet, nil
 }
 
-func (r *Repository) GetWalletTransactions(ctx context.Context, userId int) (models.WalletHistory, error) {
+func (r *Repository) GetWalletTransactions(ctx context.Context, walletId int) (models.WalletHistory, error) {
 	var transactions []models.Transaction
 	var walletHistory models.WalletHistory
 	var transactionFromQuery transactionFromDB
-	currentWalletId, err := r.GetCurrentWalletId(ctx, userId)
+	rows, err := r.db.Query("SELECT id FROM transactions WHERE from_wallet = $1", walletId)
 	if err != nil {
 		return walletHistory, err
 	}
-	rows, err := r.db.Query("SELECT id FROM transactions WHERE from_wallet = $1", currentWalletId)
-	if err != nil {
-		return walletHistory, err
-	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+
+		}
+	}(rows)
 
 	for rows.Next() {
 		var transaction models.Transaction
@@ -183,7 +190,6 @@ func (r *Repository) GetWalletTransactions(ctx context.Context, userId int) (mod
 
 		walletFrom, err = r.GetWalletInfoByWalletId(ctx, transactionFromQuery.walletFrom)
 		if err != nil {
-			fmt.Println(currentWalletId, rows, err)
 			return walletHistory, err
 		}
 		walletTo, err = r.GetWalletInfoByWalletId(ctx, transactionFromQuery.walletTo)
@@ -229,40 +235,32 @@ func (r *Repository) GetCurrentWalletId(ctx context.Context, userId int) (int, e
 	return id, nil
 }
 
-func (r *Repository) CheckBalance(ctx context.Context, amount float64, userId int) error {
+func (r *Repository) GetBalance(ctx context.Context, walletId int) decimal.Decimal {
 	var balance float64
-	currentWalletId, err := r.GetCurrentWalletId(ctx, userId)
+
+	err := r.db.QueryRow("SELECT balance FROM wallets WHERE id = $1", walletId).Scan(&balance)
 	if err != nil {
-		return err
-	}
-	err = r.db.QueryRow("SELECT balance FROM wallets WHERE id = $1", currentWalletId).Scan(&balance)
-	if err != nil {
-		return err
+		return decimal.NewFromFloat(0.0)
 	}
 
-	//check
-	finalValue := balance - amount
-	if finalValue < 0 {
-		return errors.New("not enough balance")
-	} else if amount <= 0 {
-		return errors.New("incorrect value")
-	}
-	return nil
+	return decimal.NewFromFloatWithExponent(balance, -2)
 }
 
-func (r *Repository) Pay(ctx context.Context, userId, toWalletId int, amount float64) (models.Wallet, error) {
-	walletID, err := r.GetCurrentWalletId(ctx, userId)
-	if err != nil {
-		return models.Wallet{}, err
-	}
+func (r *Repository) Pay(ctx context.Context, walletID, toWalletId int, amount int64) (models.Wallet, error) {
 	tx, err := r.db.BeginTxx(ctx, nil)
 	if err != nil {
 		return models.Wallet{}, err
 	}
 	defer (func() {
 		if err != nil {
-			tx.Rollback()
-			tx.ExecContext(ctx, "UPDATE transactions SET status = 'failed'")
+			err := tx.Rollback()
+			if err != nil {
+				return
+			}
+			_, err = tx.ExecContext(ctx, "UPDATE transactions SET status = 'failed'")
+			if err != nil {
+				return
+			}
 		}
 	})()
 

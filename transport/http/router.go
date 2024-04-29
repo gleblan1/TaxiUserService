@@ -51,10 +51,10 @@ func (r *Router) NewRoutes() *gin.Engine {
 	wallet.Use(r.authMiddleware.ValidateToken())
 	wallet.GET("/", r.handler.GetWalletInfo)
 	wallet.GET("/transactions", r.handler.GetWalletTransactions)
-	wallet.PATCH("/cash-in", r.handler.CashInWallet)
-	wallet.POST("/add-user", r.handler.AddUserToWallet)
-	wallet.POST("/pay", r.handler.Pay)
-	wallet.PATCH("/choose", r.handler.ChooseWallet)
-	wallet.POST("/create", r.handler.CreateWallet)
+	wallet.PATCH("/balance", r.handler.CashInWallet)
+	wallet.POST("/users", r.handler.AddUserToWallet)
+	wallet.POST("/payment", r.handler.Pay)
+	wallet.PATCH("/", r.handler.ChooseWallet)
+	wallet.POST("/", r.handler.CreateWallet)
 	return router
 }

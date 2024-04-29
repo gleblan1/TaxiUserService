@@ -8,9 +8,14 @@ import (
 	"syscall"
 
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice"
+	"github.com/shopspring/decimal"
 )
 
 func main() {
+	var a decimal.Decimal
+	a = decimal.NewFromFloatWithExponent(1.125123123, -2)
+	fmt.Println(a)
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
