@@ -9,6 +9,7 @@ import (
 	"github.com/shopspring/decimal"
 
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/models"
+	"github.com/shopspring/decimal"
 )
 
 type transactionFromDB struct {

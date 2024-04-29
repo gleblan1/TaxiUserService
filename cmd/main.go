@@ -10,6 +10,7 @@ import (
 	"github.com/shopspring/decimal"
 
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice"
+	"github.com/shopspring/decimal"
 )
 
 func main() {
