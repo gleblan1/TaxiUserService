@@ -6,7 +6,6 @@ import (
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/models"
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/repositories"
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/requests"
-	"github.com/GO-Trainee/GlebL-innotaxi-userservice/utils"
 )
 
 type UserService interface {
@@ -25,7 +24,9 @@ type Service struct {
 	repo *repositories.Repository
 }
 
-func NewService(options ...func(*Service)) *Service {
+type ServiceOption func(service *Service)
+
+func NewService(options ...ServiceOption) *Service {
 	service := &Service{}
 	for _, option := range options {
 		option(service)
@@ -33,25 +34,8 @@ func NewService(options ...func(*Service)) *Service {
 	return service
 }
 
-func WithAuthRepo(repo *repositories.Repository) func(*Service) {
+func WithAuthRepo(repo *repositories.Repository) ServiceOption {
 	return func(s *Service) {
 		s.repo = repo
 	}
-}
-
-func (s *Service) ValidateToken(ctx context.Context, tokenString string) (bool, error) {
-	claims, err := utils.ExtractClaims(tokenString)
-	if err != nil {
-		return false, err
-	}
-	userId := claims.Audience
-	sessionId := claims.Session
-	accessToken, err := s.repo.ValidateToken(ctx, userId, sessionId)
-	if err != nil {
-		return false, err
-	}
-	if accessToken == tokenString {
-		return true, nil
-	}
-	return false, nil
 }

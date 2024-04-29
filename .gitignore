@@ -22,7 +22,7 @@ If you prefer the allow list template instead of the deny list, see community te
 go.work
 
 #Linter
-bin/golangci-lint
+bin/.golangci-lint
 
 #Env
 config/.env

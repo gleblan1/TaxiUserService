@@ -14,7 +14,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	if err := innoTaxi_userService.Run(ctx, stop); err != nil {
+	if err := run.Run(ctx, stop); err != nil {
 		fmt.Println(err)
 	}
 }

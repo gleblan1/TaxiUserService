@@ -1,10 +1,10 @@
 package http
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
+	"github.com/GO-Trainee/GlebL-innotaxi-userservice/models"
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/requests"
 	"github.com/gin-gonic/gin"
 
@@ -22,9 +22,23 @@ type RegisterRequest struct {
 	Password    string `json:"password" binding:"required,min=8"`
 }
 
+type RegisterResponse struct {
+	Id          int     `json:"id"`
+	Name        string  `json:"name"`
+	Email       string  `json:"email"`
+	PhoneNumber string  `json:"phone_number"`
+	Password    string  `json:"password"`
+	Rating      float32 `json:"rating"`
+}
+
 type LoginRequest struct {
 	PhoneNumber string `json:"phone_number" binding:"required,e164"`
 	Password    string `json:"password" binding:"required,min=8"`
+}
+
+type LoginResponse struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
 }
 
 func (h *Handler) SignUp(c *gin.Context) {
@@ -46,8 +60,16 @@ func (h *Handler) SignUp(c *gin.Context) {
 		utils.DefineResponse(c, http.StatusBadRequest, err)
 		return
 	}
-	fmt.Println(result)
-	utils.DefineResponse(c, http.StatusOK, err, result)
+
+	response := RegisterResponse{
+		Id:          result.(models.User).Id,
+		Name:        result.(models.User).Name,
+		Email:       result.(models.User).Email,
+		PhoneNumber: result.(models.User).PhoneNumber,
+		Password:    result.(models.User).Password,
+		Rating:      result.(models.User).Rating,
+	}
+	utils.DefineResponse(c, http.StatusOK, err, response)
 	return
 }
 
@@ -63,10 +85,14 @@ func (h *Handler) LogIn(c *gin.Context) {
 		Password:    req.Password,
 	}
 
-	response, err := h.e.Login(c, requestBody)
+	tokens, err := h.e.Login(c, requestBody)
 	if err != nil {
 		utils.DefineResponse(c, http.StatusBadRequest, err)
 		return
+	}
+	response := LoginResponse{
+		AccessToken:  tokens.(models.JwtToken).AccessToken,
+		RefreshToken: tokens.(models.JwtToken).RefreshToken,
 	}
 	utils.DefineResponse(c, http.StatusOK, err, response)
 	return
@@ -113,6 +139,10 @@ func (h *Handler) Refresh(c *gin.Context) {
 		utils.DefineResponse(c, http.StatusUnauthorized, err)
 		return
 	}
-	utils.DefineResponse(c, http.StatusOK, err, tokens)
+	response := LoginResponse{
+		AccessToken:  tokens.(models.JwtToken).AccessToken,
+		RefreshToken: tokens.(models.JwtToken).RefreshToken,
+	}
+	utils.DefineResponse(c, http.StatusOK, err, response)
 	return
 }

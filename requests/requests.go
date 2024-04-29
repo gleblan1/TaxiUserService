@@ -20,3 +20,5 @@ type LogoutRequest struct {
 type RefreshRequestBody struct {
 	RefreshToken string
 }
+
+//I have json tags for these structs in transport/http/auth.go

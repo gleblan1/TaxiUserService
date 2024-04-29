@@ -1,13 +1,13 @@
 package models
 
 type JwtClaims struct {
-	Audience  string  `json:"aud,omitempty"`
-	ExpiresAt float64 `json:"exp,omitempty"`
-	IssuedAt  float64 `json:"iat,omitempty"`
-	Session   string  `'json:"jti,omitempty"`
+	Audience  string
+	ExpiresAt float64
+	IssuedAt  float64
+	Session   string
 }
 
 type JwtToken struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
+	AccessToken  string
+	RefreshToken string
 }

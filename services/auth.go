@@ -50,7 +50,19 @@ func (s *Service) SignUp(ctx context.Context, requestBody requests.RegisterReque
 	if existingUserErr != nil {
 		return models.User{}, fmt.Errorf("cannot create user: %w", existingUserErr)
 	}
-	return s.repo.SignUp(requestBody.Name, requestBody.PhoneNumber, requestBody.Email, hashedPassword)
+	userId, err := s.repo.CreateUser(requestBody.Name, requestBody.PhoneNumber, requestBody.Email, hashedPassword)
+	if err != nil {
+		return models.User{}, err
+	}
+	user, err := s.repo.GetUser(userId)
+	return models.User{
+		Id:          user.Id,
+		Name:        user.Name,
+		Email:       user.Email,
+		PhoneNumber: user.PhoneNumber,
+		Password:    user.Password,
+		Rating:      user.Rating,
+	}, nil
 }
 
 func (s *Service) LogOut(ctx context.Context, request requests.LogoutRequest) error {

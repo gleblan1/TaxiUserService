@@ -11,7 +11,9 @@ type Router struct {
 	handler        *Handler
 }
 
-func NewRouter(options ...func(*Router)) *Router {
+type RouterOptions func(*Router)
+
+func NewRouter(options ...RouterOptions) *Router {
 	router := &Router{}
 	for _, option := range options {
 		option(router)
@@ -19,20 +21,19 @@ func NewRouter(options ...func(*Router)) *Router {
 	return router
 }
 
-func WithMiddleware(middleware *middleware.Middleware) func(*Router) {
+func WithMiddleware(middleware *middleware.Middleware) RouterOptions {
 	return func(r *Router) {
 		r.authMiddleware = middleware
 	}
 }
 
-func WithHandler(h *Handler) func(*Router) {
+func WithHandler(h *Handler) RouterOptions {
 	return func(r *Router) {
 		r.handler = h
 	}
 }
 
-func (r *Router) InitRoutes() *gin.Engine {
-
+func (r *Router) NewRoutes() *gin.Engine {
 	router := gin.Default()
 	auth := router.Group("/auth")
 	auth.POST("/login", r.handler.LogIn)
