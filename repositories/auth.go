@@ -39,7 +39,6 @@ func (r *Repository) CreateUser(name, phoneNumber, email, password string) (int,
 	var userId int
 	stmt, err := r.db.db.Prepare("INSERT INTO users(name, phone_number, email, password_hash, created_at, updated_at) VALUES ($1, $2, $3, $4, now(), now()) RETURNING id")
 	if err != nil {
-		fmt.Println(1)
 		return 0, fmt.Errorf("error preparing SQL statement: %w", err)
 	}
 	defer func(stmt *sql.Stmt) {
@@ -59,7 +58,6 @@ func (r *Repository) GetUser(id int) (models.User, error) {
 	var userFromDb UserFromDb
 	err := r.db.db.QueryRow("SELECT id, name, phone_number, email, password_hash, rating FROM users WHERE id=$1", id).Scan(&userFromDb.Id, &userFromDb.Name, &userFromDb.PhoneNumber, &userFromDb.Email, &userFromDb.Password, &userFromDb.Rating)
 	if err != nil {
-		fmt.Println(2, err)
 		return models.User{}, err
 	}
 	rating, err := strconv.ParseFloat(userFromDb.Rating, 32)
