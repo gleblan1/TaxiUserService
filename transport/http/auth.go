@@ -11,7 +11,7 @@ import (
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/utils"
 )
 
-type RefreshRequestBody struct {
+type RefreshTokensRequest struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
@@ -31,12 +31,12 @@ type RegisterResponse struct {
 	Rating      float32 `json:"rating"`
 }
 
-type LoginRequest struct {
+type SignInRequest struct {
 	PhoneNumber string `json:"phone_number" binding:"required,e164"`
 	Password    string `json:"password" binding:"required,min=8"`
 }
 
-type LoginResponse struct {
+type SignInResponse struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
 }
@@ -73,24 +73,24 @@ func (h *Handler) SignUp(c *gin.Context) {
 	return
 }
 
-func (h *Handler) LogIn(c *gin.Context) {
-	var req LoginRequest
+func (h *Handler) SignIn(c *gin.Context) {
+	var req SignInRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.DefineResponse(c, http.StatusBadRequest, err)
 		return
 	}
 
-	requestBody := requests.LoginRequest{
+	requestBody := requests.SignInRequest{
 		PhoneNumber: req.PhoneNumber,
 		Password:    req.Password,
 	}
 
-	tokens, err := h.e.Login(c, requestBody)
+	tokens, err := h.e.SignIn(c, requestBody)
 	if err != nil {
 		utils.DefineResponse(c, http.StatusBadRequest, err)
 		return
 	}
-	response := LoginResponse{
+	response := SignInResponse{
 		AccessToken:  tokens.(models.JwtToken).AccessToken,
 		RefreshToken: tokens.(models.JwtToken).RefreshToken,
 	}
@@ -98,7 +98,7 @@ func (h *Handler) LogIn(c *gin.Context) {
 	return
 }
 
-func (h *Handler) LogOut(c *gin.Context) {
+func (h *Handler) SignOut(c *gin.Context) {
 	claims, err := utils.ExtractClaims(utils.GetTokenFromHeader(c))
 	if err != nil {
 		utils.DefineResponse(c, http.StatusBadRequest, err)
@@ -118,28 +118,28 @@ func (h *Handler) LogOut(c *gin.Context) {
 		SessionId: session,
 		UserId:    id,
 	}
-	if err, _ := h.e.LogOut(c, requestBody); err != nil {
+	if err, _ := h.e.SignOut(c, requestBody); err != nil {
 		return
 	}
 	return
 }
 
-func (h *Handler) Refresh(c *gin.Context) {
+func (h *Handler) RefreshTokens(c *gin.Context) {
 	refreshTokenString := h.getTokenData(c).RefreshToken
-	req := RefreshRequestBody{
+	req := RefreshTokensRequest{
 		RefreshToken: refreshTokenString,
 	}
 
-	requestBody := requests.RefreshRequestBody{
+	requestBody := requests.RefreshTokensRequest{
 		RefreshToken: req.RefreshToken,
 	}
 
-	tokens, err := h.e.Refresh(c, requestBody)
+	tokens, err := h.e.RefreshTokens(c, requestBody)
 	if err != nil {
 		utils.DefineResponse(c, http.StatusUnauthorized, err)
 		return
 	}
-	response := LoginResponse{
+	response := SignInResponse{
 		AccessToken:  tokens.(models.JwtToken).AccessToken,
 		RefreshToken: tokens.(models.JwtToken).RefreshToken,
 	}

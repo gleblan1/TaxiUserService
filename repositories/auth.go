@@ -5,39 +5,48 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/models"
 )
 
-type UserFromDb struct {
-	Id          int    `db:"id"`
-	Name        string `db:"name"`
-	Email       string `db:"email"`
-	PhoneNumber string `db:"phone_number"`
-	Password    string `db:"password_hash"`
-	Rating      string `db:"rating"`
+var (
+	nameAlreadyInUseErr  = errors.New("username is already in use")
+	phoneAlreadyInUseErr = errors.New("phone is already in use")
+	emailAlreadyInUseErr = errors.New("email is already in use")
+)
+
+type userModel struct {
+	Id          int     `db:"id"`
+	Name        string  `db:"name"`
+	Email       string  `db:"email"`
+	PhoneNumber string  `db:"phone_number"`
+	Password    string  `db:"password_hash"`
+	Rating      float32 `db:"rating"`
 }
 
-func (r *Repository) GetData(phone string) (string, int, error) {
-	var userId int
-	err := r.db.db.QueryRowx("SELECT id FROM users WHERE phone_number = $1 AND deleted_at IS NULL", phone).Scan(&userId)
+func (r *Repository) GetUserByPhone(ctx context.Context, phone string) (models.User, error) {
+	var userData userModel
+	err := r.db.QueryRowx("SELECT id, name, email, phone_number, password_hash, rating FROM users WHERE phone_number = $1 AND deleted_at IS NULL", phone).Scan(&userData.Id, &userData.Name, &userData.Email, &userData.PhoneNumber, &userData.Password, &userData.Rating)
 	if err != nil {
-		return "", userId, errors.New("user not found")
+		return models.User{}, err
 	}
 
-	var passwordFromDB string
-	err = r.db.db.QueryRow("SELECT password_hash FROM users WHERE id = $1 AND deleted_at IS NULL", userId).Scan(&passwordFromDB)
-	if err != nil {
-		return "", userId, err
+	user := models.User{
+		Id:          userData.Id,
+		Name:        userData.Name,
+		Email:       userData.Email,
+		PhoneNumber: userData.PhoneNumber,
+		Password:    userData.Password,
+		Rating:      userData.Rating,
 	}
-	return passwordFromDB, userId, nil
+
+	return user, nil
 }
 
-func (r *Repository) CreateUser(name, phoneNumber, email, password string) (int, error) {
+func (r *Repository) CreateUser(ctx context.Context, user models.User) (int, error) {
 	var userId int
-	stmt, err := r.db.db.Prepare("INSERT INTO users(name, phone_number, email, password_hash, created_at, updated_at) VALUES ($1, $2, $3, $4, now(), now()) RETURNING id")
+	stmt, err := r.db.Prepare("INSERT INTO users(name, phone_number, email, password_hash, created_at, updated_at) VALUES ($1, $2, $3, $4, now(), now()) RETURNING id")
 	if err != nil {
 		return 0, fmt.Errorf("error preparing SQL statement: %w", err)
 	}
@@ -47,20 +56,20 @@ func (r *Repository) CreateUser(name, phoneNumber, email, password string) (int,
 		}
 	}(stmt)
 
-	err = stmt.QueryRow(name, phoneNumber, email, password).Scan(&userId)
+	err = stmt.QueryRow(user.Name, user.PhoneNumber, user.Email, user.Password).Scan(&userId)
 	if err != nil {
 		return 0, fmt.Errorf("error executing SQL statement: %w", err)
 	}
 	return userId, nil
 }
 
-func (r *Repository) GetUser(id int) (models.User, error) {
-	var userFromDb UserFromDb
-	err := r.db.db.QueryRow("SELECT id, name, phone_number, email, password_hash, rating FROM users WHERE id=$1", id).Scan(&userFromDb.Id, &userFromDb.Name, &userFromDb.PhoneNumber, &userFromDb.Email, &userFromDb.Password, &userFromDb.Rating)
+func (r *Repository) GetUserById(ctx context.Context, id int) (models.User, error) {
+	var userFromDb userModel
+	err := r.db.QueryRow("SELECT id, name, phone_number, email, password_hash, rating FROM users WHERE id=$1", id).Scan(&userFromDb.Id, &userFromDb.Name, &userFromDb.PhoneNumber, &userFromDb.Email, &userFromDb.Password, &userFromDb.Rating)
 	if err != nil {
 		return models.User{}, err
 	}
-	rating, err := strconv.ParseFloat(userFromDb.Rating, 32)
+	rating := userFromDb.Rating
 
 	return models.User{
 		Id:          userFromDb.Id,
@@ -68,45 +77,32 @@ func (r *Repository) GetUser(id int) (models.User, error) {
 		PhoneNumber: userFromDb.PhoneNumber,
 		Email:       userFromDb.Email,
 		Password:    userFromDb.Password,
-		Rating:      float32(rating),
+		Rating:      rating,
 	}, nil
 }
 
-func (r *Repository) LogOut(ctx context.Context, session, id int) error {
-	exists, err := r.client.Client.Exists(ctx, strconv.Itoa(id)+"."+strconv.Itoa(session)).Result()
-	if err != nil {
-		return fmt.Errorf("log out: %w", err)
-	}
-	if exists == 1 {
-		r.client.Client.Del(context.Background(), strconv.Itoa(id)+"."+strconv.Itoa(session))
-	} else {
-		return fmt.Errorf("log out: %w", errors.New("already log out"))
-	}
-	return nil
-}
-
-func (r *Repository) CheckUserData(name, phoneNumber, email string) error {
+func (r *Repository) CheckUserData(ctx context.Context, name, phoneNumber, email string) error {
 	existingUser := models.User{}
 
-	err := r.db.db.Get(&existingUser, "SELECT name FROM users WHERE name = $1 AND deleted_at IS NULL", name)
+	err := r.db.Get(&existingUser, "SELECT name FROM users WHERE name = $1 AND deleted_at IS NULL", name)
 	if err == nil {
-		return errors.New("name already in use")
+		return nameAlreadyInUseErr
 	}
-	err = r.db.db.Get(&existingUser.Name, "SELECT id FROM users WHERE phone_number = $1 AND deleted_at IS NULL", phoneNumber)
+	err = r.db.Get(&existingUser.Name, "SELECT id FROM users WHERE phone_number = $1 AND deleted_at IS NULL", phoneNumber)
 	if err == nil {
-		return errors.New("phone already in use")
+		return phoneAlreadyInUseErr
 	}
-	err = r.db.db.Get(&existingUser, "SELECT id FROM users WHERE email = $1 AND deleted_at IS NULL", email)
+	err = r.db.Get(&existingUser, "SELECT id FROM users WHERE email = $1 AND deleted_at IS NULL", email)
 	if err == nil {
-		return errors.New("email already in use")
+		return emailAlreadyInUseErr
 	}
 
 	return nil
 }
 
-func (r *Repository) CheckIsUserDeleted(userId int) bool {
+func (r *Repository) IsUserDeleted(ctx context.Context, userId int) bool {
 	var deletedAt time.Time
-	err := r.db.db.Get(&deletedAt, "SELECT deleted_at FROM users WHERE id = $1 AND deleted_at IS NULL ", userId)
+	err := r.db.Get(&deletedAt, "SELECT deleted_at FROM users WHERE id = $1 AND deleted_at IS NULL ", userId)
 	if err != nil {
 		return false
 	}

@@ -4,14 +4,14 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-type Redis struct {
+type UserRedisRepository struct {
 	Client *redis.Client
 }
 
-type RedisOption func(*Redis)
+type RedisOption func(*UserRedisRepository)
 
-func NewRedis(options ...RedisOption) *Redis {
-	redisStore := &Redis{}
+func NewRedis(options ...RedisOption) *UserRedisRepository {
+	redisStore := &UserRedisRepository{}
 	for _, option := range options {
 		option(redisStore)
 	}
@@ -19,7 +19,7 @@ func NewRedis(options ...RedisOption) *Redis {
 }
 
 func WithRedisClient(client *redis.Client) RedisOption {
-	return func(redis *Redis) {
+	return func(redis *UserRedisRepository) {
 		redis.Client = client
 	}
 }

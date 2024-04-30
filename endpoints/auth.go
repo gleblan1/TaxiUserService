@@ -14,27 +14,27 @@ func SignUp(UserService services.UserService) Endpoint {
 	}
 }
 
-func Login(UserService services.UserService) Endpoint {
+func SignIn(UserService services.UserService) Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		requestBody := request.(requests.LoginRequest)
-		return UserService.Login(ctx, requestBody)
+		requestBody := request.(requests.SignInRequest)
+		return UserService.SignIn(ctx, requestBody)
 	}
 }
 
-func LogOut(UserService services.UserService) Endpoint {
+func SignOut(UserService services.UserService) Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		requestBody := request.(requests.LogoutRequest)
-		err := UserService.LogOut(ctx, requestBody)
+		err := UserService.SignOut(ctx, requestBody)
 		if err != nil {
 			return nil, err
 		}
-		return UserService.LogOut(ctx, requestBody), nil
+		return UserService.SignOut(ctx, requestBody), nil
 	}
 }
 
-func Refresh(UserService services.UserService) Endpoint {
+func RefreshTokens(UserService services.UserService) Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		requestBody := request.(requests.RefreshRequestBody)
-		return UserService.Refresh(ctx, requestBody)
+		requestBody := request.(requests.RefreshTokensRequest)
+		return UserService.RefreshTokens(ctx, requestBody)
 	}
 }

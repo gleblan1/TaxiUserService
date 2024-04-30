@@ -10,6 +10,11 @@ import (
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/utils"
 )
 
+var (
+	unauthorizedErr = errors.New("unauthorized")
+	invalidTokenErr = errors.New("invalid token")
+)
+
 type Middleware struct {
 	service *services.Service
 }
@@ -32,16 +37,16 @@ func (m *Middleware) ValidateToken() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		accessToken := utils.GetTokenFromHeader(c)
 		if accessToken == "" {
-			utils.DefineResponse(c, http.StatusUnauthorized, errors.New("unauthorized"))
+			utils.DefineResponse(c, http.StatusUnauthorized, unauthorizedErr)
 			return
 		}
 		isTokenValid, err := m.service.ValidateToken(c, accessToken)
 		if err != nil {
-			utils.DefineResponse(c, http.StatusUnauthorized, errors.New("invalid token"))
+			utils.DefineResponse(c, http.StatusUnauthorized, invalidTokenErr)
 			return
 		}
 		if !isTokenValid {
-			utils.DefineResponse(c, http.StatusUnauthorized, errors.New("unauthorized"))
+			utils.DefineResponse(c, http.StatusUnauthorized, unauthorizedErr)
 			return
 		}
 		c.Next()

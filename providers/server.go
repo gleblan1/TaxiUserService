@@ -1,13 +1,20 @@
 package providers
 
 import (
+	"context"
+	"errors"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
-	_ "github.com/lib/pq"
+)
+
+var (
+	serverNotConfiguredError = errors.New("server is not configured")
 )
 
 type Server struct {
 	Port   string
-	Server *gin.Engine
+	Server *http.Server
 }
 
 type ServerOption func(*Server)
@@ -28,6 +35,31 @@ func WithPort(port string) ServerOption {
 
 func WithServer(srv *gin.Engine) ServerOption {
 	return func(server *Server) {
-		server.Server = srv
+		if srv == nil {
+			server.Server = &http.Server{
+				Addr:    ":" + server.Port,
+				Handler: gin.Default(),
+			}
+		} else {
+			server.Server = &http.Server{
+				Addr:    ":" + server.Port,
+				Handler: srv,
+			}
+		}
 	}
+}
+
+func (server *Server) Run() error {
+	if server.Server == nil {
+		return serverNotConfiguredError
+	}
+	err := server.Server.ListenAndServe()
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
+		return err
+	}
+	return nil
+}
+
+func (server *Server) Stop(ctx context.Context) error {
+	return server.Server.Shutdown(ctx)
 }

@@ -7,7 +7,7 @@ type RegisterRequest struct {
 	Password    string
 }
 
-type LoginRequest struct {
+type SignInRequest struct {
 	PhoneNumber string
 	Password    string
 }
@@ -17,8 +17,6 @@ type LogoutRequest struct {
 	UserId    int
 }
 
-type RefreshRequestBody struct {
+type RefreshTokensRequest struct {
 	RefreshToken string
 }
-
-//I have json tags for these structs in transport/http/auth.go

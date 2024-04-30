@@ -36,9 +36,9 @@ func WithHandler(h *Handler) RouterOptions {
 func (r *Router) NewRoutes() *gin.Engine {
 	router := gin.Default()
 	auth := router.Group("/auth")
-	auth.POST("/login", r.handler.LogIn)
+	auth.POST("/sign-in", r.handler.SignIn)
 	auth.POST("/sign-up", r.handler.SignUp)
-	auth.POST("/refresh", r.handler.Refresh)
-	auth.POST("/logout", r.authMiddleware.ValidateToken(), r.handler.LogOut)
+	auth.POST("/refresh", r.handler.RefreshTokens)
+	auth.POST("/logout", r.authMiddleware.ValidateToken(), r.handler.SignOut)
 	return router
 }

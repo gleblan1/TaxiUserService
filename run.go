@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/sync/errgroup"
 
@@ -69,22 +70,20 @@ func Run(ctx context.Context, stop context.CancelFunc) error {
 		http.WithHandler(handlers),
 		http.WithMiddleware(middlewares),
 	)
+	server := providers.NewServer(
+		providers.WithPort(utils.ReadValue("PORT")),
+		providers.WithServer(router.NewRoutes()),
+	)
 	g.Go(func() error {
-		server := providers.NewServer(
-			providers.WithPort(utils.ReadValue("PORT")),
-			providers.WithServer(router.NewRoutes()),
-		)
-		err := server.Server.Run(":" + server.Port)
-		if err != nil {
-			return err
-		}
-		return nil
+		return server.Run()
+	})
+	g.Go(func() error {
+		<-gCtx.Done()
+		return server.Stop(ctx)
 	})
 
-	select {
-	case <-gCtx.Done():
-		stop()
-		fmt.Println(" Exited")
-		return nil
+	if err := g.Wait(); err != nil {
+		fmt.Printf("exit reason: %s \n", err)
 	}
+	return nil
 }

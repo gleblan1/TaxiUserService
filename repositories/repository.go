@@ -1,8 +1,13 @@
 package repositories
 
+import (
+	"github.com/jmoiron/sqlx"
+	"github.com/redis/go-redis/v9"
+)
+
 type Repository struct {
-	db     Postgres
-	client Redis
+	db    *sqlx.DB
+	redis redis.Client
 }
 
 type ReposOption func(*Repository)
@@ -15,14 +20,14 @@ func NewRepository(options ...ReposOption) *Repository {
 	return repo
 }
 
-func WithPostgresRepository(db Postgres) ReposOption {
+func WithPostgresRepository(db UserPostgresRepository) ReposOption {
 	return func(r *Repository) {
-		r.db = db
+		r.db = db.db
 	}
 }
 
-func WithRedis(client Redis) ReposOption {
+func WithRedis(client UserRedisRepository) ReposOption {
 	return func(r *Repository) {
-		r.client = client
+		r.redis = *client.Client
 	}
 }

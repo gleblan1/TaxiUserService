@@ -8,8 +8,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (h *Handler) getTokenData(c *gin.Context) RefreshRequestBody {
-	refreshToken := RefreshRequestBody{}
+func (h *Handler) getTokenData(c *gin.Context) RefreshTokensRequest {
+	refreshToken := RefreshTokensRequest{}
 	values, err := c.GetRawData()
 	if err != nil {
 		utils.DefineResponse(c, http.StatusBadRequest, err, values)

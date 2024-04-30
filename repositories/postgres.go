@@ -4,14 +4,14 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type Postgres struct {
+type UserPostgresRepository struct {
 	db *sqlx.DB
 }
 
-type PostgresOption func(*Postgres)
+type PostgresOption func(*UserPostgresRepository)
 
-func NewPostgres(options ...PostgresOption) *Postgres {
-	postgres := &Postgres{}
+func NewPostgres(options ...PostgresOption) *UserPostgresRepository {
+	postgres := &UserPostgresRepository{}
 	for _, option := range options {
 		option(postgres)
 	}
@@ -19,7 +19,7 @@ func NewPostgres(options ...PostgresOption) *Postgres {
 }
 
 func WithSqlxDB(db *sqlx.DB) PostgresOption {
-	return func(postgres *Postgres) {
+	return func(postgres *UserPostgresRepository) {
 		postgres.db = db
 	}
 }

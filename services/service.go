@@ -13,11 +13,11 @@ type UserService interface {
 }
 
 type Auth interface {
-	Login(ctx context.Context, requestBody requests.LoginRequest) (models.JwtToken, error)
+	SignIn(ctx context.Context, requestBody requests.SignInRequest) (models.JwtToken, error)
 	SignUp(ctx context.Context, requestBody requests.RegisterRequest) (models.User, error)
-	LogOut(ctx context.Context, request requests.LogoutRequest) error
+	SignOut(ctx context.Context, request requests.LogoutRequest) error
 	ValidateToken(ctx context.Context, tokenString string) (bool, error)
-	Refresh(ctx context.Context, requestBody requests.RefreshRequestBody) (models.JwtToken, error)
+	RefreshTokens(ctx context.Context, requestBody requests.RefreshTokensRequest) (models.JwtToken, error)
 }
 
 type Service struct {

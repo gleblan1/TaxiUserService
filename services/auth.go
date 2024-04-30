@@ -11,15 +11,23 @@ import (
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/utils"
 )
 
-func (s *Service) Login(ctx context.Context, requestBody requests.LoginRequest) (models.JwtToken, error) {
+var (
+	alreadyLogOutErr       = errors.New("already log out")
+	invalidRefreshTokenErr = errors.New("refresh token is invalid")
+	wrongPasswordErr       = errors.New("wrong password")
+)
+
+func (s *Service) SignIn(ctx context.Context, requestBody requests.SignInRequest) (models.JwtToken, error) {
 	var tokens models.JwtToken
-	passwordFromDB, userId, err := s.repo.GetData(requestBody.PhoneNumber)
+	user, err := s.repo.GetUserByPhone(ctx, requestBody.PhoneNumber)
 	if err != nil {
-		return models.JwtToken{}, err
+		return tokens, err
 	}
+	passwordFromDB := user.Password
+	userId := user.Id
 	isPasswordCorrect, err := utils.ComparePassword(passwordFromDB, requestBody.Password)
 	if err != nil {
-		return models.JwtToken{}, errors.New("wrong password")
+		return models.JwtToken{}, wrongPasswordErr
 	}
 	session := utils.CreateRandomInt()
 	if isPasswordCorrect {
@@ -46,15 +54,21 @@ func (s *Service) SignUp(ctx context.Context, requestBody requests.RegisterReque
 	if err != nil {
 		return models.User{}, err
 	}
-	existingUserErr := s.repo.CheckUserData(requestBody.Name, requestBody.PhoneNumber, requestBody.Email)
+	existingUserErr := s.repo.CheckUserData(ctx, requestBody.Name, requestBody.PhoneNumber, requestBody.Email)
 	if existingUserErr != nil {
 		return models.User{}, fmt.Errorf("cannot create user: %w", existingUserErr)
 	}
-	userId, err := s.repo.CreateUser(requestBody.Name, requestBody.PhoneNumber, requestBody.Email, hashedPassword)
+	signUpData := models.User{
+		Name:        requestBody.Name,
+		PhoneNumber: requestBody.PhoneNumber,
+		Email:       requestBody.Email,
+		Password:    hashedPassword,
+	}
+	userId, err := s.repo.CreateUser(ctx, signUpData)
 	if err != nil {
 		return models.User{}, err
 	}
-	user, err := s.repo.GetUser(userId)
+	user, err := s.repo.GetUserById(ctx, userId)
 	return models.User{
 		Id:          user.Id,
 		Name:        user.Name,
@@ -65,11 +79,20 @@ func (s *Service) SignUp(ctx context.Context, requestBody requests.RegisterReque
 	}, nil
 }
 
-func (s *Service) LogOut(ctx context.Context, request requests.LogoutRequest) error {
-	return s.repo.LogOut(ctx, request.SessionId, request.UserId)
+func (s *Service) SignOut(ctx context.Context, request requests.LogoutRequest) error {
+	exists, err := s.repo.FindTokens(ctx, strconv.Itoa(request.UserId)+"."+strconv.Itoa(request.SessionId))
+	if err != nil {
+		return fmt.Errorf("log out: %w", err)
+	}
+	if exists == 1 {
+		s.repo.DeleteTokens(ctx, strconv.Itoa(request.UserId)+"."+strconv.Itoa(request.SessionId))
+	} else {
+		return fmt.Errorf("log out: %w", alreadyLogOutErr)
+	}
+	return nil
 }
 
-func (s *Service) Refresh(ctx context.Context, requestBody requests.RefreshRequestBody) (models.JwtToken, error) {
+func (s *Service) RefreshTokens(ctx context.Context, requestBody requests.RefreshTokensRequest) (models.JwtToken, error) {
 	token := models.JwtToken{}
 	claims, err := utils.ExtractClaims(requestBody.RefreshToken)
 	if err != nil {
@@ -94,7 +117,7 @@ func (s *Service) Refresh(ctx context.Context, requestBody requests.RefreshReque
 			return models.JwtToken{}, err
 		}
 	} else {
-		return models.JwtToken{}, errors.New("refresh token is invalid")
+		return models.JwtToken{}, invalidRefreshTokenErr
 	}
 	return token, nil
 }
