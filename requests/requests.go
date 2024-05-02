@@ -82,3 +82,14 @@ type CreateWalletRequest struct {
 	UserId   int
 	IsFamily bool
 }
+
+//trips
+
+type RateTripRequest struct {
+	UserId int
+	Rate   int
+}
+
+type GetHistoryRequest struct {
+	UserId int
+}

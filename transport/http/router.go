@@ -56,5 +56,10 @@ func (r *Router) NewRoutes() *gin.Engine {
 	wallet.POST("/payment", r.handler.Pay)
 	wallet.PATCH("/", r.handler.ChooseWallet)
 	wallet.POST("/", r.handler.CreateWallet)
+
+	trip := router.Group("/trip")
+	trip.Use(r.authMiddleware.ValidateToken())
+	trip.POST("/rating", r.handler.RateTrip)
+	trip.GET("/history", r.handler.GetTripsHistory)
 	return router
 }
