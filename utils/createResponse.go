@@ -18,10 +18,17 @@ func DefineResponse(c *gin.Context, code int, err error, response ...interface{}
 	} else {
 		errMsg = ""
 	}
+	var responseData interface{}
+	if len(response) > 0 {
+		responseData = response[0]
+	} else {
+		responseData = nil
+	}
+
 	resp = Response{
 		StatusCode: code,
 		Message:    errMsg,
-		Response:   response,
+		Response:   responseData,
 	}
 	c.JSON(code, resp)
 }
