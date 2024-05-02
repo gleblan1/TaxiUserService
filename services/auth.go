@@ -23,9 +23,9 @@ func (s *Service) SignIn(ctx context.Context, requestBody requests.SignInRequest
 	if err != nil {
 		return tokens, err
 	}
-	passwordFromDB := user.Password
+	password := user.Password
 	userId := user.Id
-	isPasswordCorrect, err := utils.ComparePassword(passwordFromDB, requestBody.Password)
+	isPasswordCorrect, err := utils.ComparePassword(password, requestBody.Password)
 	if err != nil {
 		return models.JwtToken{}, wrongPasswordErr
 	}

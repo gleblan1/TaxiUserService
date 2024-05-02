@@ -3,13 +3,11 @@ package repositories
 import (
 	"context"
 	"errors"
-	"strconv"
 	"strings"
 	"time"
 )
 
 var (
-	userIsDeletedErr = errors.New("user is deleted")
 	tokenNotFoundErr = errors.New("token not found")
 )
 
@@ -38,10 +36,6 @@ func (r *Repository) SetTokens(ctx context.Context, accessToken string, refreshT
 }
 
 func (r *Repository) ValidateToken(ctx context.Context, userId, sessionId string) (string, error) {
-	intId, _ := strconv.Atoi(userId)
-	if r.IsUserDeleted(ctx, intId) {
-		return "", userIsDeletedErr
-	}
 	tokens := strings.Split(r.redis.Get(ctx, userId+"."+sessionId).String(), " ")
 	if len(tokens) == 0 {
 		return "", tokenNotFoundErr

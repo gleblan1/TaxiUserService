@@ -69,7 +69,6 @@ func (r *Repository) GetUserById(ctx context.Context, id int) (models.User, erro
 	if err != nil {
 		return models.User{}, err
 	}
-	rating := userFromDb.Rating
 
 	return models.User{
 		Id:          userFromDb.Id,
@@ -77,7 +76,7 @@ func (r *Repository) GetUserById(ctx context.Context, id int) (models.User, erro
 		PhoneNumber: userFromDb.PhoneNumber,
 		Email:       userFromDb.Email,
 		Password:    userFromDb.Password,
-		Rating:      rating,
+		Rating:      userFromDb.Rating,
 	}, nil
 }
 
