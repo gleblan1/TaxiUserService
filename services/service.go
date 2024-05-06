@@ -21,6 +21,12 @@ type Auth interface {
 	RefreshTokens(ctx context.Context, requestBody requests.RefreshTokensRequest) (models.JwtToken, error)
 }
 
+type Profile interface {
+	GetAccountInfo(ctx context.Context, req requests.GetAccountInfoRequest) (models.User, error)
+	UpdateProfile(ctx context.Context, req requests.UpdateProfileRequest) (models.User, error)
+	DeleteProfile(ctx context.Context, req requests.DeleteProfileRequest) error
+}
+
 type Service struct {
 	repo *repositories.Repository
 }
@@ -35,7 +41,7 @@ func NewService(options ...ServiceOption) *Service {
 	return service
 }
 
-func WithAuthRepo(repo *repositories.Repository) ServiceOption {
+func WithRepo(repo *repositories.Repository) ServiceOption {
 	return func(s *Service) {
 		s.repo = repo
 	}

@@ -18,7 +18,7 @@ func NewHandler(options ...HandlerOptions) *Handler {
 	return handler
 }
 
-func WithAuthService(e *endpoints.Endpoints) HandlerOptions {
+func WithEndpoints(e *endpoints.Endpoints) HandlerOptions {
 	return func(h *Handler) {
 		h.e = e
 	}

@@ -8,10 +8,3 @@ type User struct {
 	Password    string
 	Rating      float32
 }
-
-type UserInfo struct {
-	Name        string `json:"name"`
-	PhoneNumber string `json:"phone_number"`
-	Email       string `json:"email"`
-	Rating      string `json:"rating"`
-}

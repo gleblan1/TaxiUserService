@@ -8,20 +8,27 @@ import (
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/models"
 )
 
-type Profile interface {
-	GetAccountInfo(id int) (models.UserInfo, error)
-	UpdateUsername(name string, id int) error
-	UpdatePhoneNumber(phoneNumber string, id int) error
-	UpdateEmail(email string, id int) error
-	UpdateDeletedStatus(id int) error
-	DeleteAllSessions(ctx context.Context, id int) error
+type accountModel struct {
+	id     int     `db:"id"`
+	name   string  `db:"name"`
+	phone  string  `db:"phone_number"`
+	email  string  `db:"email"`
+	rating float32 `db:"rating"`
 }
 
-func (r *Repository) GetAccountInfo(id int) (models.UserInfo, error) {
-	var user models.UserInfo
-	err := r.db.QueryRow("SELECT name, phone_number, email, rating FROM users WHERE id = $1", id).Scan(&user.Name, &user.PhoneNumber, &user.Email, &user.Rating)
+func (r *Repository) GetAccountInfo(id int) (models.User, error) {
+	var accountInfo accountModel
+	var user models.User
+	err := r.db.QueryRow("SELECT id, name, phone_number, email, rating FROM users WHERE id = $1", id).Scan(&accountInfo.id, &accountInfo.name, &accountInfo.phone, &accountInfo.email, &accountInfo.rating)
 	if err != nil {
-		return models.UserInfo{}, err
+		return models.User{}, err
+	}
+	user = models.User{
+		Id:          accountInfo.id,
+		Name:        accountInfo.name,
+		PhoneNumber: accountInfo.phone,
+		Email:       accountInfo.email,
+		Rating:      accountInfo.rating,
 	}
 	return user, nil
 }
@@ -63,21 +70,21 @@ func (r *Repository) DeleteAllSessions(ctx context.Context, id int) error {
 	var keys []string
 	for {
 		var err error
-		keys, cursor, err = r.client.Scan(ctx, cursor, "*", 10000).Result()
+		keys, cursor, err = r.redis.Scan(ctx, cursor, "*", 10000).Result()
 		if err != nil {
 			return err
 		}
 		for _, key := range keys {
 			val := strings.Split(key, ".")[0]
 			if val == strconv.Itoa(id) {
-				r.client.Del(ctx, key)
+				r.redis.Del(ctx, key)
 			}
 		}
 
 		if cursor == 0 {
 			break
 		}
-		keys, cursor, err = r.client.Scan(ctx, cursor, "*", 10000).Result()
+		keys, cursor, err = r.redis.Scan(ctx, cursor, "*", 10000).Result()
 	}
 	return nil
 }

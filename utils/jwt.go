@@ -6,9 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GO-Trainee/GlebL-innotaxi-userservice/models"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+
+	"github.com/GO-Trainee/GlebL-innotaxi-userservice/models"
 )
 
 func GenerateTokens(session, uuid string) (refreshToken, accessToken string, err error) {

@@ -40,5 +40,11 @@ func (r *Router) NewRoutes() *gin.Engine {
 	auth.POST("/sign-up", r.handler.SignUp)
 	auth.POST("/refresh", r.handler.RefreshTokens)
 	auth.POST("/logout", r.authMiddleware.ValidateToken(), r.handler.SignOut)
+
+	profile := router.Group("/profile")
+	profile.Use(r.authMiddleware.ValidateToken())
+	profile.PATCH("/", r.handler.UpdateProfile)
+	profile.DELETE("/", r.handler.DeleteProfile)
+	profile.GET("/", r.handler.GetAccountInfo)
 	return router
 }

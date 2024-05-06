@@ -11,6 +11,10 @@ type Endpoints struct {
 	SignIn        Endpoint
 	SignOut       Endpoint
 	RefreshTokens Endpoint
+
+	GetAccountInfo Endpoint
+	UpdateProfile  Endpoint
+	DeleteProfile  Endpoint
 }
 
 type Endpoint func(ctx context.Context, request interface{}) (response interface{}, err error)
@@ -21,5 +25,9 @@ func MakeEndpoints(UserService services.UserService) *Endpoints {
 		SignIn:        SignIn(UserService),
 		SignOut:       SignOut(UserService),
 		RefreshTokens: RefreshTokens(UserService),
+
+		GetAccountInfo: GetAccountInfo(UserService),
+		UpdateProfile:  UpdateProfile(UserService),
+		DeleteProfile:  DeleteProfile(UserService),
 	}
 }

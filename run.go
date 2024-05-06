@@ -18,7 +18,7 @@ import (
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/utils"
 )
 
-func Run(ctx context.Context, stop context.CancelFunc) error {
+func Run(ctx context.Context) error {
 	g, gCtx := errgroup.WithContext(ctx)
 	db, err := sqlx.Open("postgres", utils.DbConnectionString())
 	if err != nil {
@@ -53,13 +53,13 @@ func Run(ctx context.Context, stop context.CancelFunc) error {
 	)
 
 	service := services.NewService(
-		services.WithAuthRepo(repos),
+		services.WithRepo(repos),
 	)
 
 	endpoint := endpoints.MakeEndpoints(service)
 
 	handlers := http.NewHandler(
-		http.WithAuthService(endpoint),
+		http.WithEndpoints(endpoint),
 	)
 
 	middlewares := middleware.NewMiddleware(

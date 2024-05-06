@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/GO-Trainee/GlebL-innotaxi-userservice/models"
-	"github.com/GO-Trainee/GlebL-innotaxi-userservice/requests"
 	"github.com/gin-gonic/gin"
 
+	"github.com/GO-Trainee/GlebL-innotaxi-userservice/models"
+	"github.com/GO-Trainee/GlebL-innotaxi-userservice/requests"
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/utils"
 )
 

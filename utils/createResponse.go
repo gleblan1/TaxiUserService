@@ -30,5 +30,5 @@ func DefineResponse(c *gin.Context, code int, err error, response ...interface{}
 		Message:    errMsg,
 		Response:   responseData,
 	}
-	c.JSON(code, resp)
+	c.AbortWithStatusJSON(code, resp)
 }

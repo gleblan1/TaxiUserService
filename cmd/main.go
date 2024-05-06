@@ -21,7 +21,7 @@ func main() {
 		stop()
 	}()
 
-	if err := run.Run(ctx, stop); err != nil {
+	if err := run.Run(ctx); err != nil {
 		fmt.Println(err)
 	}
 }

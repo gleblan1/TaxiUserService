@@ -32,8 +32,10 @@ type GetAccountInfoRequest struct {
 }
 
 type UpdateProfileRequest struct {
-	Id      int
-	NewData PatchRequest
+	Id          int
+	Name        string
+	PhoneNumber string
+	Email       string
 }
 
 type DeleteProfileRequest struct {

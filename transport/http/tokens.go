@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/GO-Trainee/GlebL-innotaxi-userservice/utils"
 	"github.com/gin-gonic/gin"
+
+	"github.com/GO-Trainee/GlebL-innotaxi-userservice/utils"
 )
 
 func (h *Handler) getTokenData(c *gin.Context) RefreshTokensRequest {
