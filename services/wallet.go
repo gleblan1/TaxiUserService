@@ -4,37 +4,31 @@ import (
 	"context"
 	"errors"
 
-	"github.com/GO-Trainee/GlebL-innotaxi-userservice/config"
-	"github.com/GO-Trainee/GlebL-innotaxi-userservice/models"
 	"github.com/shopspring/decimal"
+
+	"github.com/GO-Trainee/GlebL-innotaxi-userservice/models"
+	"github.com/GO-Trainee/GlebL-innotaxi-userservice/requests"
+	"github.com/GO-Trainee/GlebL-innotaxi-userservice/utils"
 )
 
-type ResponseWalletInfo struct {
-	Id       int
-	Users    []models.WalletMember
-	Balance  float64
-	Owner    models.WalletMember
-	IsFamily bool
-}
-
-func (s *Service) GetWalletInfo(ctx context.Context, req config.GetWalletInfoRequest) (ResponseWalletInfo, error) {
-	var walletInfo ResponseWalletInfo
+func (s *Service) GetWalletInfo(ctx context.Context, req requests.GetWalletInfoRequest) (models.Wallet, error) {
+	var walletInfo models.Wallet
 	wallet, err := s.repo.GetWalletInfo(ctx, req.UserId)
 	if err != nil {
-		return ResponseWalletInfo{}, err
+		return models.Wallet{}, err
 	}
-	walletInfo = ResponseWalletInfo{
+	walletInfo = models.Wallet{
 		Id:       wallet.Id,
 		Users:    wallet.Users,
-		Balance:  s.ConvertIntToFloat(wallet.Balance),
+		Balance:  wallet.Balance,
 		Owner:    wallet.Owner,
 		IsFamily: wallet.IsFamily,
 	}
 	return walletInfo, nil
 }
 
-func (s *Service) CashInWallet(ctx context.Context, req config.CashInWalletRequest) (models.Wallet, error) {
-	amount := s.ConvertFloatToInt(req.Amount)
+func (s *Service) CashInWallet(ctx context.Context, req requests.CashInWalletRequest) (models.Wallet, error) {
+	amount := utils.ConvertFloatToInt(req.Amount)
 	return s.repo.CashInWallet(ctx, req.WalletId, amount)
 }
 
@@ -49,7 +43,7 @@ func (s *Service) CheckIsOwner(ctx context.Context, userId, walletId int) bool {
 	return false
 }
 
-func (s *Service) AddUserToWallet(ctx context.Context, req config.AddUserToWalletRequest) (models.Wallet, error) {
+func (s *Service) AddUserToWallet(ctx context.Context, req requests.AddUserToWalletRequest) (models.Wallet, error) {
 	walletID, err := s.repo.GetCurrentWalletId(ctx, req.UserId)
 	if err != nil {
 		return models.Wallet{}, err
@@ -60,7 +54,7 @@ func (s *Service) AddUserToWallet(ctx context.Context, req config.AddUserToWalle
 	return s.repo.AddUserToWallet(ctx, walletID, req.UserToAdd, req.UserId)
 }
 
-func (s *Service) GetWalletTransactions(ctx context.Context, req config.GetWalletTransactionsRequest) (models.WalletHistory, error) {
+func (s *Service) GetWalletTransactions(ctx context.Context, req requests.GetWalletTransactionsRequest) (models.WalletHistory, error) {
 	currentWalletId, err := s.repo.GetCurrentWalletId(ctx, req.UserId)
 	if err != nil {
 		return models.WalletHistory{}, err
@@ -68,7 +62,7 @@ func (s *Service) GetWalletTransactions(ctx context.Context, req config.GetWalle
 	return s.repo.GetWalletTransactions(ctx, currentWalletId)
 }
 
-func (s *Service) ChooseWallet(ctx context.Context, req config.ChooseWalletRequest) (models.Wallet, error) {
+func (s *Service) ChooseWallet(ctx context.Context, req requests.ChooseWalletRequest) (models.Wallet, error) {
 	userOwnerId, err := s.repo.GetOwnerOfWallet(ctx, req.WalletId)
 	if err != nil {
 		return models.Wallet{}, err
@@ -85,20 +79,7 @@ func (s *Service) ChooseWallet(ctx context.Context, req config.ChooseWalletReque
 
 }
 
-func (s *Service) ConvertDecimalToInt(value decimal.Decimal) int64 {
-	return value.Mul(decimal.NewFromFloat(100)).IntPart()
-}
-
-func (s *Service) ConvertFloatToInt(value float64) int64 {
-	return decimal.NewFromFloatWithExponent(value, -2).Mul(decimal.NewFromFloat(100)).IntPart()
-}
-
-func (s *Service) ConvertIntToFloat(value int64) float64 {
-	result, _ := decimal.NewFromFloatWithExponent(float64(value), -2).Div(decimal.NewFromFloat(100)).Float64()
-	return result
-}
-
-func (s *Service) Pay(ctx context.Context, req config.PayRequest) (models.Wallet, error) {
+func (s *Service) Pay(ctx context.Context, req requests.PayRequest) (models.Wallet, error) {
 	currentWalletId, err := s.repo.GetCurrentWalletId(ctx, req.UserId)
 	if err != nil {
 		return models.Wallet{}, err
@@ -113,9 +94,9 @@ func (s *Service) Pay(ctx context.Context, req config.PayRequest) (models.Wallet
 	} else if req.Amount <= 0 {
 		return models.Wallet{}, errors.New("incorrect value")
 	}
-	return s.repo.Pay(ctx, currentWalletId, req.ToWalletId, s.ConvertDecimalToInt(amount))
+	return s.repo.Pay(ctx, currentWalletId, req.ToWalletId, utils.ConvertDecimalToInt(amount))
 }
 
-func (s *Service) CreateWallet(ctx context.Context, req config.CreateWalletRequest) (models.Wallet, error) {
+func (s *Service) CreateWallet(ctx context.Context, req requests.CreateWalletRequest) (models.Wallet, error) {
 	return s.repo.CreateWallet(ctx, req.UserId, req.IsFamily)
 }

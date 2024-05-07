@@ -7,8 +7,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/GO-Trainee/GlebL-innotaxi-userservice"
 	"github.com/shopspring/decimal"
+
+	"github.com/GO-Trainee/GlebL-innotaxi-userservice"
 )
 
 func main() {

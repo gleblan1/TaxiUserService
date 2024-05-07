@@ -6,8 +6,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/GO-Trainee/GlebL-innotaxi-userservice/models"
 	"github.com/shopspring/decimal"
+
+	"github.com/GO-Trainee/GlebL-innotaxi-userservice/models"
 )
 
 type transactionFromDB struct {
@@ -103,7 +104,12 @@ func (r *Repository) AddUserToWallet(ctx context.Context, walletID, userToAdd, u
 		return models.Wallet{}, err
 	}
 
-	wallet, err = r.GetWalletInfoByWalletId(ctx, walletID)
+	_, err = r.db.Exec("UPDATE wallets SET is_family=true WHERE id=$1", walletID)
+	if err != nil {
+		return models.Wallet{}, err
+	}
+
+	wallet, err = r.GetWalletById(ctx, walletID)
 	if err != nil {
 		return models.Wallet{}, err
 	}
@@ -111,25 +117,21 @@ func (r *Repository) AddUserToWallet(ctx context.Context, walletID, userToAdd, u
 	return wallet, nil
 }
 
-func (r *Repository) GetWalletInfoByWalletId(ctx context.Context, walletId int) (models.Wallet, error) {
+func (r *Repository) GetWalletById(ctx context.Context, walletId int) (models.Wallet, error) {
 	var wallet models.Wallet
 	var owner models.WalletMember
 	var members []models.WalletMember
 	ownerId, err := r.GetOwnerOfWallet(ctx, walletId)
-
-	//general wallet info
 	err = r.db.QueryRow("SELECT id, is_family, balance FROM wallets WHERE id = $1", walletId).Scan(&wallet.Id, &wallet.IsFamily, &wallet.Balance)
 	if err != nil {
 		return models.Wallet{}, err
 	}
 
-	//owner info
 	err = r.db.QueryRow("SELECT id, name, phone_number, email, rating FROM users WHERE id = $1", ownerId).Scan(&owner.Id, &owner.Name, &owner.PhoneNumber, &owner.Email, &owner.Rating)
 	if err != nil {
 		return models.Wallet{}, err
 	}
 
-	//members info
 	rows, err := r.db.Query("SELECT user_id FROM family_wallets WHERE wallet_id=$1", wallet.Id)
 	defer func(rows *sql.Rows) {
 		err := rows.Close()
@@ -184,15 +186,14 @@ func (r *Repository) GetWalletTransactions(ctx context.Context, walletId int) (m
 			return walletHistory, err
 		}
 		_ = r.db.QueryRow("SELECT id, from_wallet, to_wallet, amount, status FROM transactions WHERE id = $1", transaction.Id).Scan(&transactionFromQuery.id, &transactionFromQuery.walletFrom, &transactionFromQuery.walletTo, &transactionFromQuery.amount, &transactionFromQuery.status)
-
 		var walletFrom models.Wallet
 		var walletTo models.Wallet
 
-		walletFrom, err = r.GetWalletInfoByWalletId(ctx, transactionFromQuery.walletFrom)
+		walletFrom, err = r.GetWalletById(ctx, transactionFromQuery.walletFrom)
 		if err != nil {
 			return walletHistory, err
 		}
-		walletTo, err = r.GetWalletInfoByWalletId(ctx, transactionFromQuery.walletTo)
+		walletTo, err = r.GetWalletById(ctx, transactionFromQuery.walletTo)
 		if err != nil {
 			return walletHistory, err
 		}
