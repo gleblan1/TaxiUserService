@@ -1,12 +1,11 @@
 package http
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
-	"github.com/GO-Trainee/GlebL-innotaxi-userservice/config"
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/models"
+	"github.com/GO-Trainee/GlebL-innotaxi-userservice/requests"
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/utils"
 	"github.com/gin-gonic/gin"
 )
@@ -52,7 +51,7 @@ func (h *Handler) RateTrip(c *gin.Context) {
 		return
 	}
 
-	requestBody := config.RateTripRequest{
+	requestBody := requests.RateTripRequest{
 		UserId: id,
 		Rate:   req.Rate,
 	}
@@ -85,9 +84,8 @@ func (h *Handler) GetTripsHistory(c *gin.Context) {
 		utils.DefineResponse(c, http.StatusBadRequest, err)
 		return
 	}
-	fmt.Println(id)
 
-	requestBody := config.GetHistoryRequest{
+	requestBody := requests.GetHistoryRequest{
 		UserId: id,
 	}
 

@@ -12,6 +12,7 @@ type UserService interface {
 	Auth
 	Profile
 	Wallet
+	Trips
 }
 
 type Auth interface {
@@ -37,6 +38,11 @@ type Wallet interface {
 	ChooseWallet(ctx context.Context, req requests.ChooseWalletRequest) (models.Wallet, error)
 	Pay(ctx context.Context, req requests.PayRequest) (models.Wallet, error)
 	CreateWallet(ctx context.Context, req requests.CreateWalletRequest) (models.Wallet, error)
+}
+
+type Trips interface {
+	RateTrip(ctx context.Context, req requests.RateTripRequest) (models.Trip, error)
+	GetTripsHistory(ctx context.Context, req requests.GetHistoryRequest) (models.TripHistory, error)
 }
 
 type Service struct {

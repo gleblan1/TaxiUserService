@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/GO-Trainee/GlebL-innotaxi-userservice/config"
 	"github.com/GO-Trainee/GlebL-innotaxi-userservice/models"
+	"github.com/GO-Trainee/GlebL-innotaxi-userservice/requests"
 )
 
-func (s *Service) RateTrip(ctx context.Context, req config.RateTripRequest) (models.Trip, error) {
+func (s *Service) RateTrip(ctx context.Context, req requests.RateTripRequest) (models.Trip, error) {
 	user, err := s.repo.GetUserById(ctx, req.UserId)
 	lastTrip, err := s.repo.GetLastTrip(ctx, user)
 	if err != nil {
@@ -22,7 +22,7 @@ func (s *Service) RateTrip(ctx context.Context, req config.RateTripRequest) (mod
 	return result, nil
 }
 
-func (s *Service) GetTripsHistory(ctx context.Context, req config.GetHistoryRequest) (models.TripHistory, error) {
+func (s *Service) GetTripsHistory(ctx context.Context, req requests.GetHistoryRequest) (models.TripHistory, error) {
 	user, err := s.repo.GetUserById(ctx, req.UserId)
 	fmt.Println(user)
 	if err != nil {
