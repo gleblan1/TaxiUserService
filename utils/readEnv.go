@@ -1,9 +1,10 @@
 package utils
 
 import (
+	"log"
+
 	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
-	"log"
 )
 
 func ReadValue(envString string) string {

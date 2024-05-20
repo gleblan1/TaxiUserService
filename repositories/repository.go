@@ -5,17 +5,29 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-type IRepository interface {
-	IAuthRepository
-}
-
 type Repository struct {
-	AuthRepository
+	db    *sqlx.DB
+	redis redis.Client
 }
 
-func NewRepository(db *sqlx.DB, client redis.Client) *Repository {
-	return &Repository{AuthRepository: AuthRepository{
-		db,
-		client,
-	}}
+type ReposOption func(*Repository)
+
+func NewRepository(options ...ReposOption) *Repository {
+	repo := &Repository{}
+	for _, option := range options {
+		option(repo)
+	}
+	return repo
+}
+
+func WithPostgresRepository(db UserPostgresRepository) ReposOption {
+	return func(r *Repository) {
+		r.db = db.db
+	}
+}
+
+func WithRedis(client UserRedisRepository) ReposOption {
+	return func(r *Repository) {
+		r.redis = *client.Client
+	}
 }
